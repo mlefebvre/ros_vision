@@ -1,0 +1,15 @@
+aaa:
+  type: resize
+  order: 3
+  height: 600
+  width: 800
+resize1:
+  type: resize
+  order: 1
+  height: 600
+  width: 800
+resize2:
+  type: resize
+  order: 2
+  height: 600
+  width: 800

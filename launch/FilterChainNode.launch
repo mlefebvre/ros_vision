@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="ros_vision" name="filter_chain_node" type="filter_chain_node.py" output="screen">
+        <param name="resize1/height" value="800" />
+    </node>
+</launch>
