@@ -3,13 +3,16 @@ aaa:
   order: 3
   height: 600
   width: 800
+  input: /capra_camera/image
 resize1:
   type: resize
   order: 1
   height: 600
   width: 800
+  input: aaa/output
 resize2:
   type: resize
   order: 2
   height: 600
-  width: 800
+  input: resize1/output
+  output: /potato

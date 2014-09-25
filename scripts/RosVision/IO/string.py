@@ -6,8 +6,9 @@ class String(IOObject):
     def to_ros_msg(self):
         return m.String(self.value)
 
-    def from_ros_msg(self):
-        return self.value
+    @staticmethod
+    def from_ros_msg(data):
+        return String(data)
 
     @staticmethod
     def get_ros_type():

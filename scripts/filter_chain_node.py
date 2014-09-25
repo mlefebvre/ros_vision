@@ -19,6 +19,7 @@ def load_yaml(file_name):
 
 
 rospy.init_node('filter_chain_node')
+
 fc = FilterChain()
 
 # Load configuration

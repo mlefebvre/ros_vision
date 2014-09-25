@@ -12,8 +12,8 @@ class IOObject(object):
     def to_ros_msg(self):
         return
 
-    @abc.abstractmethod
-    def from_ros_msg(self):
+    @staticmethod
+    def from_ros_msg(data):
         return
 
     @staticmethod
