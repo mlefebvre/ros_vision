@@ -46,15 +46,17 @@ class IOManager:
 
     def update_value(self, name, value):
         name = self._format_topic_name(name)
-        #if
         self._last_values[name] = value
+        pub = self._publishers[name]
+        if pub.get_num_connections() > 0:
+            pub.publish(value.to_ros_msg())
 
     def get_value(self, name, time=0):
         name = self._format_topic_name(name)
         if name in self._last_values:
             val = self._last_values[name]
             if type(val) != self._subscribers_types[name]:
-                return self._subscribers_types[name].from_ros_msg(val)
+                return self._subscribers_types[name](val)
             else:
                 return val
         else:
