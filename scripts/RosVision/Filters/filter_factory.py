@@ -1,4 +1,7 @@
-from Resize.resize_filter import ResizeFilter
+import importlib
+import os
+import pkgutil
+from filter import Filter
 
 
 class FilterFactory:
@@ -7,5 +10,19 @@ class FilterFactory:
 
     @staticmethod
     def create_filter(name, filter_type, params=None):
-        f = ResizeFilter(name, params)
-        return f
+        pkgpath = os.path.dirname(os.path.realpath(__file__))
+        for _, module, _ in pkgutil.iter_modules([pkgpath]):
+            if module.lower() == filter_type.lower():
+                i = importlib.import_module("RosVision.Filters.%s.filter" % module)
+                if hasattr(i, "__dict__"):
+                    for n, c in i.__dict__.items():
+                        print n, c
+                        try:
+                            if issubclass(c, Filter):
+                                return c(name, params)
+                        except:
+                            pass
+
+
+
+
