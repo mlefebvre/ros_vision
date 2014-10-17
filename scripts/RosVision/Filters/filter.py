@@ -77,3 +77,11 @@ class Filter:
     def get_descriptor(self):
         return self.descriptor
 
+    def get_last_input_time(self):
+        #last_time = 0
+        #for i in self.descriptor.get_inputs():
+        #    name = i.get_name()
+        #    if name in self._params:
+
+
+
