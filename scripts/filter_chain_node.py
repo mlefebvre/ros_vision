@@ -2,21 +2,10 @@
 
 import roslib; roslib.load_manifest('ros_vision')
 import rospy
-import rospkg
-import yaml
-import os
 from RosVision.filter_chain import FilterChain
 import ros_vision.srv
 import ros_vision.msg
 
-def load_yaml(file_name):
-    rospack = rospkg.RosPack()
-    name = os.path.join(rospack.get_path("ros_vision"), file_name)
-    if not os.path.exists(name):
-        name = file_name
-
-    with open(name, 'r') as f:
-        return yaml.load(f)
 
 def list_filters(req):
     response = ros_vision.srv.ListFiltersResponse()
@@ -55,32 +44,24 @@ def list_filters(req):
 
     return response
 
+def create_filter(req):
+    params = {}
+    prefix = "%s/%s/" % (rospy.get_name(), req.name)
+    for p in rospy.get_param_names():
+        if p.startswith(prefix):
+            params[p[len(prefix):]] = rospy.get_param(p)
+
+    fc.create_filter(req.name, req.type, params)
+    return ros_vision.srv.CreateFilterResponse()
 
 rospy.init_node('filter_chain_node')
 
 fc = FilterChain()
 
-# Load configuration
-config_file = rospy.get_param("~config", default="configs/default.yaml")
-config = load_yaml(config_file)
-ros_params = {}
-
-# Load filters
-for name, params in sorted(config.items(), key=lambda x: x[1]['order']):
-    filter_type = params['type']
-    del params['order']
-    del params['type']
-    for p, v in params.items():
-        ros_params["%s/%s" % (name, p)] = v
-
-    fc.create_filter(name, filter_type, params)
-
-# Set ROS parameters for each filter
-for param, value in ros_params.items():
-    rospy.set_param("~%s" % param, value)
-
 filter_service = rospy.Service('~list_filters', ros_vision.srv.ListFilters, list_filters)
+create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFilter, create_filter)
 
 while not rospy.is_shutdown():
-    fc.execute()
+    rospy.sleep(1) ##################### ENLEVER
+    #fc.execute()
 
