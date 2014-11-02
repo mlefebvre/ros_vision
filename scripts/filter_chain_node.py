@@ -6,7 +6,7 @@ import rospkg
 import yaml
 import os
 from RosVision.filter_chain import FilterChain
-
+from ros_vision.msg import Service
 
 def load_yaml(file_name):
     rospack = rospkg.RosPack()
@@ -40,6 +40,8 @@ for name, params in sorted(config.items(), key=lambda x: x[1]['order']):
 # Set ROS parameters for each filter
 for param, value in ros_params.items():
     rospy.set_param("~%s" % param, value)
+
+filter_service = rospy.Service('add_two_ints', rospy_tutorials.srv.AddTwoInts, add_two_ints)
 
 while not rospy.is_shutdown():
     fc.execute()
