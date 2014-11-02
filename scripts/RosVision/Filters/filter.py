@@ -74,6 +74,9 @@ class Filter:
         name = self._format_io_name(name)
         return self._io_manager.get_value(name)
 
+    def get_topic_name(self, name):
+        return IOManager().format_topic_name(self._format_io_name(name))
+
     def get_descriptor(self):
         return self.descriptor
 

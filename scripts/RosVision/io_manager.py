@@ -10,7 +10,7 @@ class IOManager:
     def __init__(self):
         pass
 
-    def _format_topic_name(self, name):
+    def format_topic_name(self, name):
         if not name.startswith("/"):
             if name.startswith("~"):
                 name = rospy.get_name() + name[1:]
@@ -20,7 +20,7 @@ class IOManager:
         return name
 
     def create_topic(self, name, topic_type):
-        name = self._format_topic_name(name)
+        name = self.format_topic_name(name)
         print "Created topic publisher: %s" % name
         self._publishers[name] = rospy.Publisher(name, topic_type.get_ros_type(), queue_size=10)
 
@@ -39,20 +39,20 @@ class IOManager:
         self._last_values[topic] = msg
 
     def watch_topic(self, name, topic_type):
-        name = self._format_topic_name(name)
+        name = self.format_topic_name(name)
         if not name in self._publishers:
             self._subscribers[name] = rospy.Subscriber(name, topic_type.get_ros_type(), self._topic_callback)
         self._subscribers_types[name] = topic_type
 
     def update_value(self, name, value):
-        name = self._format_topic_name(name)
+        name = self.format_topic_name(name)
         self._last_values[name] = value
         pub = self._publishers[name]
         if pub.get_num_connections() > 0:
             pub.publish(value.to_ros_msg())
 
     def get_value(self, name, time=0):
-        name = self._format_topic_name(name)
+        name = self.format_topic_name(name)
         if name in self._last_values:
             val = self._last_values[name]
             if type(val) != self._subscribers_types[name]:

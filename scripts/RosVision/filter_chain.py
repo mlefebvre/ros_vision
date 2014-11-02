@@ -31,3 +31,6 @@ class FilterChain:
         for f in self._filter_list:
             f.execute()
 
+    def get_filters(self):
+        return self._filter_list
+
