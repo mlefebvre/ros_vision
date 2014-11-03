@@ -20,6 +20,7 @@ else:
  
 while rval:
     msg = bridge.cv2_to_imgmsg(frame, encoding="bgr8")
+    msg.header.stamp = rospy.Time.now()
     pub.publish(msg)
     rval, frame = webcam.read()
     cv2.imshow("webcam", frame)

@@ -19,4 +19,5 @@ class BitwiseAndFilter(Filter):
         mask = self.get_input("mask")
         if im and mask:
             im2 = Image(cv2.bitwise_and(im.get_image(), im.get_image(), mask=mask.get_image()))
+            im.copy_header(im2)
             self.set_output("output", im2)

@@ -17,4 +17,5 @@ class Gray2BGRFilter(Filter):
         im = self.get_input("input")
         if im:
             im2 = Image(cv2.cvtColor(im.get_image(), cv2.COLOR_GRAY2BGR))
+            im.copy_header(im2)
             self.set_output("output", im2)

@@ -61,7 +61,9 @@ fc = FilterChain()
 filter_service = rospy.Service('~list_filters', ros_vision.srv.ListFilters, list_filters)
 create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFilter, create_filter)
 
+rate = rospy.Rate(10)
+
 while not rospy.is_shutdown():
-    rospy.sleep(1) ##################### ENLEVER
-    #fc.execute()
+    fc.execute()
+    rate.sleep()
 

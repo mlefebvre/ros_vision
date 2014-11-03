@@ -27,4 +27,5 @@ class ErodeFilter(Filter):
             element_size = self.get_param("element_size")
             element = cv2.getStructuringElement(element_shape, (element_size, element_size))
             im2 = Image(cv2.erode(im.get_image(), element))
+            im.copy_header(im2)
             self.set_output("output", im2)

@@ -25,4 +25,5 @@ class HSVThresholdFilter(Filter):
         if im:
             im2 = Image(cv2.inRange(im.get_image(), (self.get_param("min_hue"), self.get_param("min_saturation"), self.get_param("min_value")),
                                                     (self.get_param("max_hue"), self.get_param("max_saturation"), self.get_param("max_value"))))
+            im.copy_header(im2)
             self.set_output("output", im2)

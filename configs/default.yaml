@@ -1,33 +1,16 @@
 banane:
-  bilateral1:
-    type: BilateralFilter
+  bgr2gray1:
+    type: BGR2Gray
     order: 1
     input: /capra_camera/image
-    d: 10
-  hsv1:
-    type: BGR2HSV
+  facedetection1:
+    type: CascadeClassifier
     order: 2
-    input: bilateral1/output
-  thresh1:
-    type: HSVThreshold
+    input: bgr2gray1/output
+  drawpolygons1:
+    type: DrawPolygons
     order: 3
-    input: hsv1/output
-    min_hue: 30
-    max_hue: 70
-  erode1:
-    type: Erode
-    order: 4
-    input: thresh1/output
-    element_size: 5
-    element_type: cross
-  dilate1:
-    type: Dilate
-    order: 5
-    input: erode1/output
-    element_size: 10
-    iterations: 5
-  and1:
-    type: BitwiseAnd
-    order: 6
+    color_red: 255
+    thickness: 5
     input: /capra_camera/image
-    mask: erode1/output
+    polygons: facedetection1/faces

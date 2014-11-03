@@ -20,4 +20,5 @@ class ResizeRatioFilter(Filter):
         im = self.get_input("input")
         if im:
             im2 = Image(cv2.resize(im.get_image(), (0, 0), fx=self.get_param("width")/100.0, fy=self.get_param("height")/100.0))
+            im.copy_header(im2)
             self.set_output("output", im2)

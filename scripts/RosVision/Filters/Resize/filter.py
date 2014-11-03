@@ -20,4 +20,5 @@ class ResizeFilter(Filter):
         im = self.get_input("input")
         if im:
             im2 = Image(cv2.resize(im.get_image(), (self.get_param("width"), self.get_param("height"))))
+            im.copy_header(im2)
             self.set_output("output", im2)

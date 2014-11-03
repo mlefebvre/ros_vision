@@ -21,4 +21,5 @@ class BilateralFilter(Filter):
         im = self.get_input("input")
         if im:
             im2 = Image(cv2.bilateralFilter(im.get_image(), self.get_param("d"), self.get_param("sigma_color"), self.get_param("sigma_space")))
+            im.copy_header(im2)
             self.set_output("output", im2)

@@ -44,3 +44,6 @@ class IOObjectStamped(IOObject):
     def set_time(self, time):
         self.time = time
 
+    def copy_header(self, dst):
+        dst._set_header(self._get_header())
+
