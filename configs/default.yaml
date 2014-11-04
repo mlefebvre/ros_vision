@@ -1,16 +1,52 @@
-banane:
-  bgr2gray1:
-    type: BGR2Gray
+blur:
+  blur:
+    type: Blur
     order: 1
     input: /capra_camera/image
-  facedetection1:
-    type: CascadeClassifier
+    ksize: 5
+green:
+  hsv:
+    type: BGR2HSV
     order: 2
-    input: bgr2gray1/output
-  drawpolygons1:
-    type: DrawPolygons
+    input: /blur/blur/output
+  thresh:
+    type: HSVThreshold
     order: 3
-    color_red: 255
-    thickness: 5
-    input: /capra_camera/image
-    polygons: facedetection1/faces
+    input: hsv/output
+    min_hue: 60
+    max_hue: 110
+  erode:
+    type: Erode
+    order: 4
+    input: thresh/output
+    element_size: 5
+    element_type: cross
+  dilate:
+    type: Dilate
+    order: 5
+    input: erode/output
+    element_size: 10
+    iterations: 5
+orange:
+  hsv:
+    type: BGR2HSV
+    order: 2
+    input: /blur/blur/output
+  thresh:
+    type: HSVThreshold
+    order: 3
+    input: hsv/output
+    min_hue: 0
+    max_hue: 40
+  erode:
+    type: Erode
+    order: 4
+    input: thresh/output
+    element_size: 5
+    element_type: cross
+  dilate:
+    type: Dilate
+    order: 5
+    input: erode/output
+    element_size: 10
+    iterations: 5
