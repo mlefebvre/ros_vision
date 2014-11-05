@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ROSCVM</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+      body {
+        text-align: center;
+        min-width: 500px;
+      }
+    </style>
+    <script src="http://code.jquery.com/jquery.min.js"></script>
+    <script>
+        function drawImage(canvas_id, imgString){
+            var canvas = document.getElementById(canvas_id);
+            var ctx = canvas.getContext("2d");
+
+            var image = new Image();
+            image.src = "data:image/jpg;base64," + imgString;
+            image.onload = function() {
+                ctx.drawImage(image, 0, 0);
+            };
+        }
+      $(document).ready(function () {
+ 
+        var input1 = new WebSocket("ws://localhost:8888/input1/");
+        var input2 = new WebSocket("ws://localhost:8888/input2/");
+
+        input1.onmessage = function(evt) {
+            drawImage("input1", evt.data);
+        };
+
+        input2.onmessage = function(evt) {
+            drawImage("input2", evt.data);
+        };
+      });
+    </script>
+  </head>
+ 
+  <body>
+    <div style="float: left">
+        <h1>Feed 1</h1>
+        <canvas id="input1" width="640" height="480" style="border:1px solid #d3d3d3;">
+        Your browser does not support the HTML5 canvas tag.</canvas>
+    </div>
+
+    <div style="float: left">
+        <h1>Feed 1</h1>
+        <canvas id="input2" width="640" height="480" style="border:1px solid #d3d3d3;">
+        Your browser does not support the HTML5 canvas tag.</canvas>
+    </div>
+  </body>
+</html>
