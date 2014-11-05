@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from rospy.impl.registration import get_topic_manager
 
 import tornado.httpserver
 import tornado.ioloop
@@ -11,13 +12,16 @@ from sensor_msgs.msg import Image
 
 import cv2
 import os.path
+import json
 import base64
 
 class RosCvm_Gui(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/", DashBoardHandler),
-            (r"/input([0-9]+)/", InputHandler),
+            (r"/input([0-9]+)/", WebsocketHandler),
+            (r"/input([0-9]+)/set/", WebsocketHandler),
+            (r"/inputs/list/", InputListHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -32,7 +36,15 @@ class DashBoardHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('dashboard.html')
 
-class InputHandler(tornado.websocket.WebSocketHandler):
+class InputListHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        self.write_message(json.dumps(['(None)'] + [topic[0] for topic in rospy.get_published_topics() if topic[1] in valid_topic_types]))
+
+class SetInputHandler(tornado.websocket.WebSocketHandler):
+    def on_message(self, message):
+        print message
+
+class WebsocketHandler(tornado.websocket.WebSocketHandler):
     def open(self, input_id):
         rospy.Subscriber('/capra_camera/image', Image, self.on_image)
 
@@ -43,6 +55,9 @@ class InputHandler(tornado.websocket.WebSocketHandler):
 
 if __name__ == "__main__":
     rospy.init_node('roscvm_gui')
+
+    valid_topic_types = ['sensor_msgs/Image', 'sensor_msgs/PointCloud2']
+    feed_inputs = {'feed1': None, 'feed2': None}
 
     http_server = tornado.httpserver.HTTPServer(RosCvm_Gui())
     http_server.listen(8888)

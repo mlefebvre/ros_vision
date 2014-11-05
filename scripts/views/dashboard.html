@@ -11,8 +11,8 @@
     </style>
     <script src="http://code.jquery.com/jquery.min.js"></script>
     <script>
-        function drawImage(canvas_id, imgString){
-            var canvas = document.getElementById(canvas_id);
+        function drawImage(feed_id, imgString){
+            var canvas = document.getElementById(feed_id);
             var ctx = canvas.getContext("2d");
 
             var image = new Image();
@@ -22,17 +22,27 @@
             };
         }
       $(document).ready(function () {
- 
-        var input1 = new WebSocket("ws://localhost:8888/input1/");
-        var input2 = new WebSocket("ws://localhost:8888/input2/");
+        var inputs = new WebSocket("ws://192.168.1.112:8888/inputs/list/");
+        var input_setter1 = new WebSocket("ws://192.168.1.112:8888/input1/set/");
+        var input_setter2 = new WebSocket("ws://192.168.1.112:8888/input1/set/");
+
+        inputs.onmessage = function(evt) {
+            $('#inputs1').empty();
+            $.each($.parseJSON(evt.data), function(index, value) {
+                $('#inputs1').append($('<option>').text(value).val(value));
+            });
+        };
+
+        var input1 = new WebSocket("ws://192.168.1.112:8888/input1/");
+        //var input2 = new WebSocket("ws://192.168.1.112:8888/input2/");
 
         input1.onmessage = function(evt) {
             drawImage("input1", evt.data);
         };
 
-        input2.onmessage = function(evt) {
-            drawImage("input2", evt.data);
-        };
+        //input2.onmessage = function(evt) {
+        //    drawImage("input2", evt.data);
+        //};
       });
     </script>
   </head>
@@ -40,13 +50,15 @@
   <body>
     <div style="float: left">
         <h1>Feed 1</h1>
-        <canvas id="input1" width="640" height="480" style="border:1px solid #d3d3d3;">
+        <select id="inputs1"></select> <br />
+        <canvas id="feed1" width="640" height="480" style="border:1px solid #d3d3d3;">
         Your browser does not support the HTML5 canvas tag.</canvas>
     </div>
 
     <div style="float: left">
-        <h1>Feed 1</h1>
-        <canvas id="input2" width="640" height="480" style="border:1px solid #d3d3d3;">
+        <h1>Feed 2</h1>
+        <select id="inputs2"></select> <br />
+        <canvas id="feed2" width="640" height="480" style="border:1px solid #d3d3d3;">
         Your browser does not support the HTML5 canvas tag.</canvas>
     </div>
   </body>
