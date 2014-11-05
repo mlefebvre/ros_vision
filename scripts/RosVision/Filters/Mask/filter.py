@@ -5,8 +5,8 @@ from ..io_descriptor import IODescriptor
 from ...IO.image import Image
 import cv2
 
-class BitwiseAndFilter(Filter):
-    descriptor = FilterDescriptor("BitwiseAnd", "Applies a bitwise mask to an image.",
+class MaskFilter(Filter):
+    descriptor = FilterDescriptor("Mask", "Applies a bitwise mask to an image.",
                                   inputs=[IODescriptor("input", "Input image.", Image),
                                           IODescriptor("mask", "Input mask", Image)],
                                   outputs=[IODescriptor("output", "Resized image.", Image)])
