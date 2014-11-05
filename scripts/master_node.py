@@ -22,7 +22,7 @@ def load_yaml(file_name):
 
 nodes = {}
 
-config_file = rospy.get_param("~config", default="configs/default.yaml")
+config_file = rospy.get_param("~config", default="configs/test_vert_orange.yaml")#default.yaml")
 config = load_yaml(config_file)
 for name, params in config.items():
     f = FilterChainNodeWrapper(name, params)

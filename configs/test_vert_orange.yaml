@@ -4,25 +4,25 @@ main:
     order: 1
     input: /capra_camera/image
     ksize: 5
+  hsv:
+    type: BGR2HSV
+    order: 2
+    input: blur/output
   or:
       type: BitwiseOr
-      order: 2
+      order: 3
       input1: /green/dilate/output
       input2: /orange/dilate/output
   mask:
       type: Mask
-      order: 3
+      order: 4
       input: /capra_camera/image
       mask: or/output
 green:
-  hsv:
-    type: BGR2HSV
-    order: 2
-    input: /main/blur/output
   thresh:
     type: HSVThreshold
     order: 3
-    input: hsv/output
+    input: /main/hsv/output
     min_hue: 50
     max_hue: 110
   erode:
@@ -38,14 +38,10 @@ green:
     element_size: 10
     iterations: 5
 orange:
-  hsv:
-    type: BGR2HSV
-    order: 2
-    input: /main/blur/output
   thresh:
     type: HSVThreshold
     order: 3
-    input: hsv/output
+    input: /main/hsv/output
     min_hue: 0
     max_hue: 20
     min_saturation: 153
