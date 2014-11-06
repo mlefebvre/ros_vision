@@ -9,15 +9,15 @@ main:
     order: 2
     input: blur/output
   or:
-      type: BitwiseOr
-      order: 3
-      input1: /green/dilate/output
-      input2: /orange/dilate/output
+    type: BitwiseOr
+    order: 3
+    input1: /green/dilate/output
+    input2: /orange/dilate/output
   mask:
-      type: Mask
-      order: 4
-      input: /capra_camera/image
-      mask: or/output
+    type: Mask
+    order: 4
+    input: /capra_camera/image
+    mask: or/output
 green:
   thresh:
     type: HSVThreshold

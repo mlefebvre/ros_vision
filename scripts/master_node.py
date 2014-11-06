@@ -6,7 +6,7 @@ import rospkg
 import os
 import yaml
 from Master.filter_chain_node_wrapper import FilterChainNodeWrapper
-
+from Master.scheduler import Scheduler
 
 rospy.init_node('master_node')
 
@@ -20,18 +20,21 @@ def load_yaml(file_name):
     with open(name, 'r') as f:
         return yaml.load(f)
 
+def create_filter_chain_node(name, params):
+    f = FilterChainNodeWrapper(name, params)
+    nodes[name] = f
+    scheduler.add_filter_chain_node(name)
+
+
 nodes = {}
+scheduler = Scheduler()
 
 config_file = rospy.get_param("~config", default="configs/test_vert_orange.yaml")#default.yaml")
 config = load_yaml(config_file)
 for name, params in config.items():
-    f = FilterChainNodeWrapper(name, params)
-    nodes[name] = f
+    create_filter_chain_node(name, params)
 
-
-while not rospy.is_shutdown():
-    rospy.sleep(1)
-
+scheduler.run()
 
 
 

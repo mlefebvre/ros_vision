@@ -47,6 +47,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    Filter.msg
+   FilterList.msg
    IODescriptor.msg
    Parameter.msg
    PolygonListStamped.msg
@@ -55,7 +56,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   ListFilters.srv
    CreateFilter.srv
  )
 
