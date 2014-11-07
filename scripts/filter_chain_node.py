@@ -5,7 +5,7 @@ import rospy
 from RosVision.filter_chain import FilterChain
 import ros_vision.srv
 import ros_vision.msg
-
+from RosVision.io_manager import IOManager
 
 def update_filter_topic():
     msg = ros_vision.msg.FilterList()
@@ -20,14 +20,14 @@ def update_filter_topic():
             d = ros_vision.msg.IODescriptor()
             name = i.get_name()
             d.name = name
-            d.topic = f.get_input_name(name)
+            d.topic = IOManager().format_topic_name(f.get_io_name(name))
             filter.inputs.append(d)
 
         for o in descriptor.get_outputs():
             d = ros_vision.msg.IODescriptor()
             name = o.get_name()
             d.name = name
-            d.topic = f.get_input_name(name)
+            d.topic = IOManager().format_topic_name(f.get_io_name(name))
             filter.outputs.append(d)
 
         for p in descriptor.get_parameters():

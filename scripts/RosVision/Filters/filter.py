@@ -63,20 +63,16 @@ class Filter:
         return self._params
 
     def set_output(self, name, value):
-        if name in self._params:
-            name = self._params[name]
-        name = self._format_io_name(name)
-        self._io_manager.update_value(name, value)
+        self._io_manager.update_value(self.get_io_name(name), value)
 
     def get_input(self, name):
+        return self._io_manager.get_value(self.get_io_name(name))
+
+    def get_io_name(self, name):
         if name in self._params:
             name = self._params[name]
         name = self._format_io_name(name)
-        return self._io_manager.get_value(name)
-
-    def get_input_name(self, name):
-        print self.get_param(name)
-        return self.get_param(name)
+        return name
 
     def get_descriptor(self):
         return self.descriptor
