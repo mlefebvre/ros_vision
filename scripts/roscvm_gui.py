@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from rospy.impl.registration import get_topic_manager
 
 import tornado.httpserver
 import tornado.ioloop
@@ -9,19 +8,22 @@ import tornado.websocket
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import PointCloud2
 
 import cv2
 import os.path
-import json
 import base64
+import json
 
 class RosCvm_Gui(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/", DashBoardHandler),
-            (r"/input([0-9]+)/", WebsocketHandler),
-            (r"/input([0-9]+)/set/", WebsocketHandler),
-            (r"/inputs/list/", InputListHandler),
+            (r"/styles/(.*)", tornado.web.StaticFileHandler, {"path": "assets/css"}),
+            (r"/scripts/(.*)", tornado.web.StaticFileHandler, {"path": "assets/js"}),
+            (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "assets/img"}),
+            (r"/input([0-9]+)/", SetInputHandler),
+            (r"/input([0-9]+)/topic/", TopicSelectorHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -36,28 +38,44 @@ class DashBoardHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('dashboard.html')
 
-class InputListHandler(tornado.websocket.WebSocketHandler):
-    def open(self):
-        self.write_message(json.dumps(['(None)'] + [topic[0] for topic in rospy.get_published_topics() if topic[1] in valid_topic_types]))
-
 class SetInputHandler(tornado.websocket.WebSocketHandler):
-    def on_message(self, message):
-        print message
+    def open(self, topic):
+        #rospy.Subscriber("/capra_camera/image", Image, self.on_image)
+        self.input_subscriber = None
 
-class WebsocketHandler(tornado.websocket.WebSocketHandler):
-    def open(self, input_id):
-        rospy.Subscriber('/capra_camera/image', Image, self.on_image)
+    def on_message(self, message):
+        topic, type = message.split(',')
+
+        if self.input_subscriber is not None:
+            self.input_subscriber.unregister()
+
+        if type in input_topic_types:
+            self.input_subscriber = rospy.Subscriber(topic, input_topic_types[type], self.on_image)
+        else:
+            self.write_message(type)
 
     def on_image(self, image):
         img = CvBridge().imgmsg_to_cv2(image)
         #gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        self.write_message(base64.encodestring(cv2.imencode('.jpg', img)[1]))
+        if self.ws_connection is not None:
+            self.write_message(base64.encodestring(cv2.imencode('.jpg', img)[1]))
+
+class TopicSelectorHandler(tornado.websocket.WebSocketHandler):
+    def open(self, input_id):
+        self.input_id = input_id
+        self.write_message(
+            json.dumps(
+                {
+                    "topics" : [dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))],
+                    "selected": "None"
+                }
+            )
+        )
 
 if __name__ == "__main__":
     rospy.init_node('roscvm_gui')
 
-    valid_topic_types = ['sensor_msgs/Image', 'sensor_msgs/PointCloud2']
-    feed_inputs = {'feed1': None, 'feed2': None}
+    input_topic_types = rospy.get_param('~input_topic_types', {'sensor_msgs/Image' : Image, 'sensor_msgs/PointCloud2': PointCloud2})
 
     http_server = tornado.httpserver.HTTPServer(RosCvm_Gui())
     http_server.listen(8888)

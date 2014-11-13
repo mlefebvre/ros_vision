@@ -1,0 +1,188 @@
+* {
+    padding: 0px;
+    margin: 0px;
+}
+
+html, body, .roscvm-container
+{
+    height: 100%;
+}
+
+.wrapper {
+    display: table;
+    height: 100%;
+    width: 100%;
+}
+
+.feed-and-settings-container {
+    height: 35%;
+    background-color: greenyellow;
+}
+
+.feed-container {
+    height: 100%;
+    padding: 0px;
+}
+
+.settings-container {
+    height: 100%;
+    background-color: royalblue;
+}
+
+canvas {
+    border: 2px solid #696969;
+    background-color: #000000;
+    position: relative;
+    z-index: 1;
+}
+
+.feed-info {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: #ffffff;
+    z-index: 2;
+}
+
+.topic-selector {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 2;
+}
+
+.workspace {
+    height: 65%;
+    background-color: pink;
+}
+
+/**********/
+.filtergroup-container {
+    height: calc(100% - 60px);
+}
+
+.new-filtergroup {
+    height: 30px;
+    background-color: orange;
+}
+
+.filtergroup {
+    border: 1px solid #000000;
+    background-color: saddlebrown;
+}
+
+.filtergroup-header {
+    height: 25px;
+}
+
+.filtergroup-name {
+    height: 100%;
+    width: 90%;
+    float: left;
+    background-color: yellow;
+}
+
+.filtergroup-delete {
+    height: 100%;
+    width: 10%;
+    float: left;
+    background-color: purple;
+}
+
+.filtergroup-body {
+    height: calc(100% - 25px);
+    background-color: red;
+}
+
+.filter-container {
+    height: 100%;
+    width: calc(100% - 60px);
+    float: left;
+    background-color: cyan;
+}
+
+.new-filter {
+    height: 100%;
+    width: 30px;
+    float: left;
+    background-color: blue;
+}
+
+.filter {
+    height: 100%;
+    float: left;
+    border: 1px solid #000000;
+    background-color: darkgreen;
+}
+/**********/
+
+/*
+
+.filter {
+	padding:16px;
+	position:absolute;
+	border: 1px solid black;
+	z-index:4;
+	border-radius:1em;
+	border:1px solid #2e6f9a;
+	box-shadow: 2px 2px 19px #e0e0e0;
+	-o-box-shadow: 2px 2px 19px #e0e0e0;
+	-webkit-box-shadow: 2px 2px 19px #e0e0e0;
+	-moz-box-shadow: 2px 2px 19px #e0e0e0;
+	-moz-border-radius:8px;
+	border-radius:8px;
+	opacity:0.8;
+	filter:alpha(opacity=80);
+	cursor:move;
+	background-color:white;
+	font-size:11px;
+	-webkit-transition:background-color 0.25s ease-in;
+	-moz-transition:background-color 0.25s ease-in;
+	transition:background-color 0.25s ease-in;
+}
+
+.filter:hover {
+	background-color: #5c96bc;
+	color:white;
+
+}
+
+.aLabel {
+	-webkit-transition:background-color 0.25s ease-in;
+	-moz-transition:background-color 0.25s ease-in;
+	transition:background-color 0.25s ease-in;
+}
+
+.aLabel._jsPlumb_hover, ._jsPlumb_source_hover, ._jsPlumb_target_hover {
+	background-color:#1e8151;
+	color:white;
+}
+
+.aLabel {
+	background-color:white;
+	opacity:0.8;
+	padding:0.3em;
+	border-radius:0.5em;
+	border:1px solid #346789;
+	cursor:pointer;
+}
+
+.ep {
+	position:absolute;
+	bottom: 37%;
+	right: 5px;
+	width:1em;
+	height:1em;
+	background-color:orange;
+	cursor:pointer;
+	box-shadow: 0px 0px 2px black;
+	-webkit-transition:-webkit-box-shadow 0.25s ease-in;
+	-moz-transition:-moz-box-shadow 0.25s ease-in;
+	transition:box-shadow 0.25s ease-in;
+}
+
+.ep:hover {
+	box-shadow: 0px 0px 6px black;
+}
+
+*/

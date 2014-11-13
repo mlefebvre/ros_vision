@@ -1,65 +1,154 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <title>ROSCVM</title>
     <meta charset="utf-8" />
-    <style type="text/css">
-      body {
-        text-align: center;
-        min-width: 500px;
-      }
-    </style>
-    <script src="http://code.jquery.com/jquery.min.js"></script>
+    <link rel="stylesheet" href="styles/bootstrap.min.css" />
+    <link rel="stylesheet" href="styles/roscvm.css" />
+    <script src="scripts/jquery-2.1.1.min.js"></script>
+    <script src="scripts/jquery-ui.min.js"></script>
+    <script src="scripts/jquery.jsPlumb-1.7.1-min.js"></script>
+    <script src="scripts/roscvm.js"></script>
     <script>
-        function drawImage(feed_id, imgString){
-            var canvas = document.getElementById(feed_id);
+        function draw_image(canvas_id, imgString){
+            var canvas = $("#" + canvas_id)[0];
             var ctx = canvas.getContext("2d");
-
             var image = new Image();
-            image.src = "data:image/jpg;base64," + imgString;
+
+            if(imgString != "None") {
+                image.src = ((imgString != null) ? "data:image/jpg;base64," + imgString : null);
+
+            } else {
+                image.src = "images/no_feed.png";
+            }
+
             image.onload = function() {
-                ctx.drawImage(image, 0, 0);
+                canvas.style.width='100%';
+                canvas.style.height='100%';
+                canvas.width  = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
             };
         }
-      $(document).ready(function () {
-        var inputs = new WebSocket("ws://192.168.1.112:8888/inputs/list/");
-        var input_setter1 = new WebSocket("ws://192.168.1.112:8888/input1/set/");
-        var input_setter2 = new WebSocket("ws://192.168.1.112:8888/input1/set/");
 
-        inputs.onmessage = function(evt) {
-            $('#inputs1').empty();
-            $.each($.parseJSON(evt.data), function(index, value) {
-                $('#inputs1').append($('<option>').text(value).val(value));
+        function build_topic_list(topic_selector_id, data) {
+            $("#" + topic_selector_id).empty();
+            $("#" + topic_selector_id).append('<option value="None">None</option>');
+
+            data = JSON.parse(data);
+            topics = data.topics;
+            selected = data.selected;
+
+            $.each(topics, function(i, optgroups) {
+                $.each(optgroups, function(groupName, options) {
+                    var $optgroup = $("<optgroup>", {label: groupName});
+                    $optgroup.appendTo($("#" + topic_selector_id));
+
+                    $.each(options, function(j, option) {
+                        var $option = $("<option>", {text: option, value: groupName});
+                        $option.appendTo($optgroup);
+                    });
+                });
             });
-        };
 
-        var input1 = new WebSocket("ws://192.168.1.112:8888/input1/");
-        //var input2 = new WebSocket("ws://192.168.1.112:8888/input2/");
+            $("#" + topic_selector_id + " option").filter(function () { return $(this).html() == selected; }).val();
+        }
+
+      $(document).ready(function () {
+        var input1 = new WebSocket("ws://localhost:8888/input1/");
+        var topics1 = new WebSocket("ws://localhost:8888/input1/topic/");
+        var input2 = new WebSocket("ws://localhost:8888/input2/");
+        var topics2 = new WebSocket("ws://localhost:8888/input1/topic/");
+
+        draw_image("feed1", "None");
+        draw_image("feed2", "None");
 
         input1.onmessage = function(evt) {
-            drawImage("input1", evt.data);
+            draw_image("feed1", evt.data);
         };
 
-        //input2.onmessage = function(evt) {
-        //    drawImage("input2", evt.data);
-        //};
+        topics1.onmessage = function(evt) {
+            build_topic_list("feed1-topics", evt.data);
+        };
+
+        input2.onmessage = function(evt) {
+            draw_image("feed2", evt.data);
+        };
+
+       topics2.onmessage = function(evt) {
+            build_topic_list("feed2-topics", evt.data);
+        };
+
+        $("#feed1-topics").change(function () {
+            input1.send([$("option:selected", this).text(), $("option:selected", this).val()])
+        });
+
+        $("#feed2-topics").change(function () {
+            input2.send([$("option:selected", this).text(), $("option:selected", this).val()])
+        });
+
+        $(".new-filtergroup.top").click(function() {
+            $(this).parent().find(".filtergroup-container").prepend('<div class="filtergroup" style="height: 100%"><div class="filtergroup-header"><div class="filtergroup-name"></div><div class="filtergroup-delete"></div></div><div class="filtergroup-body"><div class="new-filter before"></div><div class="filter-container"><div class="filter" style="width: 100%"></div></div><div class="new-filter after"></div></div></div>');
+            $(this).parent().find(".filtergroup-container").children().css({ height : 100 / $(this).parent().find(".filtergroup-container").children().length + '%' });
+        });
+
+        $(".new-filtergroup.bottom").click(function() {
+            $(this).parent().find(".filtergroup-container").append('<div class="filtergroup" style="height: 100%"><div class="filtergroup-header"><div class="filtergroup-name"></div><div class="filtergroup-delete"></div></div><div class="filtergroup-body"><div class="new-filter before"></div><div class="filter-container"><div class="filter" style="width: 100%"></div></div><div class="new-filter after"></div></div></div>');
+            $(this).parent().find(".filtergroup-container").children().css({ height : 100 / $(this).parent().find(".filtergroup-container").children().length + '%' });
+        });
+
+        $("body").on("click", ".new-filter.after", function() {
+            $(this).parent().find(".filter-container").append('<div class="filter"></div>');
+            $(this).parent().find(".filter-container").children().css({ width : 100 / $(this).parent().find(".filter-container").children().length + '%' });
+        });
+
+        $("body").on("click", ".new-filter.before", function() {
+            $(this).parent().find(".filter-container").prepend('<div class="filter"></div>');
+            $(this).parent().find(".filter-container").children().css({ width : 100 / $(this).parent().find(".filter-container").children().length + '%' });
+        });
       });
     </script>
   </head>
- 
-  <body>
-    <div style="float: left">
-        <h1>Feed 1</h1>
-        <select id="inputs1"></select> <br />
-        <canvas id="feed1" width="640" height="480" style="border:1px solid #d3d3d3;">
-        Your browser does not support the HTML5 canvas tag.</canvas>
-    </div>
 
-    <div style="float: left">
-        <h1>Feed 2</h1>
-        <select id="inputs2"></select> <br />
-        <canvas id="feed2" width="640" height="480" style="border:1px solid #d3d3d3;">
-        Your browser does not support the HTML5 canvas tag.</canvas>
-    </div>
-  </body>
+    <body>
+        <div class="container-fluid roscvm-container">
+            <div class="row feed-and-settings-container">
+                <div id="feed1-container" class="col-md-3 feed-container">
+                    <canvas id="feed1"></canvas>
+                    <select id="feed1-topics" class="topic-selector"></select>
+                    <span id="feed1-info" class="feed-info">TEST 1</span>
+                </div>
+
+                <div id="feed2-container" class="col-md-3 feed-container">
+                    <canvas id="feed2"></canvas>
+                    <select id="feed2-topics" class="topic-selector"></select>
+                    <span id="feed2-info" class="feed-info">TEST 2</span>
+                </div>
+
+                <div class="col-md-6 settings-container">
+                    Blah
+                </div>
+            </div>
+            <div id="workspace" class="row workspace">
+                <div class="new-filtergroup top"></div>
+                <div class="filtergroup-container">
+                    <div class="filtergroup" style="height: 100%">
+                        <div class="filtergroup-header">
+                            <div class="filtergroup-name"></div>
+                            <div class="filtergroup-delete"></div>
+                        </div>
+                        <div class="filtergroup-body">
+                            <div class="new-filter before"></div>
+                            <div class="filter-container">
+                                <div class="filter" style="width: 100%"></div>
+                            </div>
+                            <div class="new-filter after"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="new-filtergroup bottom"></div>
+            </div>
+        </div>
+
+    </body>
 </html>
