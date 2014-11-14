@@ -8,12 +8,6 @@ html, body, .roscvm-container
     height: 100%;
 }
 
-.wrapper {
-    display: table;
-    height: 100%;
-    width: 100%;
-}
-
 .feed-and-settings-container {
     height: 35%;
     background-color: greenyellow;
@@ -57,6 +51,40 @@ canvas {
 }
 
 /**********/
+
+.filtergroup-add {
+    text-align: center;
+    border: 2px solid #0000FF;
+}
+
+.filtergroup-header {
+    flex: 0 1 100%;
+    border: 2px solid #00FFFF;
+}
+
+.filtergroup {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+    border: 2px solid #00FF00;
+}
+
+.filter {
+    list-style: none;
+    flex-grow: 1;
+    border: 2px solid #FF0000;
+}
+
+.filter-add {
+    list-style: none;
+    flex: 0 0 60px;
+    border: 2px solid #FFFF00;
+}
+
+/**********
 .filtergroup-container {
     height: calc(100% - 60px);
 }
@@ -113,76 +141,4 @@ canvas {
     float: left;
     border: 1px solid #000000;
     background-color: darkgreen;
-}
-/**********/
-
-/*
-
-.filter {
-	padding:16px;
-	position:absolute;
-	border: 1px solid black;
-	z-index:4;
-	border-radius:1em;
-	border:1px solid #2e6f9a;
-	box-shadow: 2px 2px 19px #e0e0e0;
-	-o-box-shadow: 2px 2px 19px #e0e0e0;
-	-webkit-box-shadow: 2px 2px 19px #e0e0e0;
-	-moz-box-shadow: 2px 2px 19px #e0e0e0;
-	-moz-border-radius:8px;
-	border-radius:8px;
-	opacity:0.8;
-	filter:alpha(opacity=80);
-	cursor:move;
-	background-color:white;
-	font-size:11px;
-	-webkit-transition:background-color 0.25s ease-in;
-	-moz-transition:background-color 0.25s ease-in;
-	transition:background-color 0.25s ease-in;
-}
-
-.filter:hover {
-	background-color: #5c96bc;
-	color:white;
-
-}
-
-.aLabel {
-	-webkit-transition:background-color 0.25s ease-in;
-	-moz-transition:background-color 0.25s ease-in;
-	transition:background-color 0.25s ease-in;
-}
-
-.aLabel._jsPlumb_hover, ._jsPlumb_source_hover, ._jsPlumb_target_hover {
-	background-color:#1e8151;
-	color:white;
-}
-
-.aLabel {
-	background-color:white;
-	opacity:0.8;
-	padding:0.3em;
-	border-radius:0.5em;
-	border:1px solid #346789;
-	cursor:pointer;
-}
-
-.ep {
-	position:absolute;
-	bottom: 37%;
-	right: 5px;
-	width:1em;
-	height:1em;
-	background-color:orange;
-	cursor:pointer;
-	box-shadow: 0px 0px 2px black;
-	-webkit-transition:-webkit-box-shadow 0.25s ease-in;
-	-moz-transition:-moz-box-shadow 0.25s ease-in;
-	transition:box-shadow 0.25s ease-in;
-}
-
-.ep:hover {
-	box-shadow: 0px 0px 6px black;
-}
-
-*/
+} */

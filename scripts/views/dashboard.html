@@ -87,25 +87,33 @@
             input2.send([$("option:selected", this).text(), $("option:selected", this).val()])
         });
 
+        /*$(".filter-container").sortable({
+            connectWith: ".filter-container"
+        });
+
         $(".new-filtergroup.top").click(function() {
             $(this).parent().find(".filtergroup-container").prepend('<div class="filtergroup" style="height: 100%"><div class="filtergroup-header"><div class="filtergroup-name"></div><div class="filtergroup-delete"></div></div><div class="filtergroup-body"><div class="new-filter before"></div><div class="filter-container"><div class="filter" style="width: 100%"></div></div><div class="new-filter after"></div></div></div>');
-            $(this).parent().find(".filtergroup-container").children().css({ height : 100 / $(this).parent().find(".filtergroup-container").children().length + '%' });
+            $(this).parent().find(".filtergroup-container").children().css({ height : 99 / $(this).parent().find(".filtergroup-container").children().length + '%' });
+            $(".filter-container").sortable("refresh");
         });
 
         $(".new-filtergroup.bottom").click(function() {
             $(this).parent().find(".filtergroup-container").append('<div class="filtergroup" style="height: 100%"><div class="filtergroup-header"><div class="filtergroup-name"></div><div class="filtergroup-delete"></div></div><div class="filtergroup-body"><div class="new-filter before"></div><div class="filter-container"><div class="filter" style="width: 100%"></div></div><div class="new-filter after"></div></div></div>');
-            $(this).parent().find(".filtergroup-container").children().css({ height : 100 / $(this).parent().find(".filtergroup-container").children().length + '%' });
+            $(this).parent().find(".filtergroup-container").children().css({ height : 99 / $(this).parent().find(".filtergroup-container").children().length + '%' });
+            $(".filter-container").sortable("refresh");
         });
 
         $("body").on("click", ".new-filter.after", function() {
             $(this).parent().find(".filter-container").append('<div class="filter"></div>');
-            $(this).parent().find(".filter-container").children().css({ width : 100 / $(this).parent().find(".filter-container").children().length + '%' });
+            $(this).parent().find(".filter-container").children().css({ width : 99 / $(this).parent().find(".filter-container").children().length + '%' });
+            $(".filter-container").sortable("refresh");
         });
 
         $("body").on("click", ".new-filter.before", function() {
             $(this).parent().find(".filter-container").prepend('<div class="filter"></div>');
-            $(this).parent().find(".filter-container").children().css({ width : 100 / $(this).parent().find(".filter-container").children().length + '%' });
-        });
+            $(this).parent().find(".filter-container").children().css({ width : 99 / $(this).parent().find(".filter-container").children().length + '%' });
+            $(".filter-container").sortable("refresh");
+        });*/
       });
     </script>
   </head>
@@ -129,7 +137,25 @@
                     Blah
                 </div>
             </div>
+
             <div id="workspace" class="row workspace">
+                <div class="filtergroup-add top">Add △</div>
+                <dl class="filtergroup">
+                    <dt class="filtergroup-header">Filter Group 1</dt>
+                    <dl class="filter-add left">◁ Add</dl>
+                    <dl class="filter">Filter 1</dl>
+                    <dl class="filter-add right">Add ▷</dl>
+                </dl>
+                <dl class="filtergroup">
+                    <dt class="filtergroup-header">Filter Group 2</dt>
+                    <dl class="filter-add left">◁ Add</dl>
+                    <dl class="filter">Filter 1</dl>
+                    <dl class="filter-add right">Add ▷</dl>
+                </dl>
+                <div class="filtergroup-add top">Add ▽</div>
+            </div>
+
+            <!--div id="workspace" class="row workspace">
                 <div class="new-filtergroup top"></div>
                 <div class="filtergroup-container">
                     <div class="filtergroup" style="height: 100%">
@@ -147,7 +173,7 @@
                     </div>
                 </div>
                 <div class="new-filtergroup bottom"></div>
-            </div>
+            </div-->
         </div>
 
     </body>

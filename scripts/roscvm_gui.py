@@ -63,6 +63,7 @@ class SetInputHandler(tornado.websocket.WebSocketHandler):
 class TopicSelectorHandler(tornado.websocket.WebSocketHandler):
     def open(self, input_id):
         self.input_id = input_id
+        #print [dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))]
         self.write_message(
             json.dumps(
                 {
