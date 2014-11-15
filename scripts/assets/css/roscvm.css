@@ -8,18 +8,28 @@ html, body, .roscvm-container
     height: 100%;
 }
 
-.feed-and-settings-container {
-    height: 35%;
-    background-color: greenyellow;
+.roscvm-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.roscvm-header {
+    display: flex;
+    height: 240px;
+    flex-direction: row;
 }
 
 .feed-container {
-    height: 100%;
-    padding: 0px;
+    width: 320px;
+    height: 240px;
+    flex: 0 0 320px;
+    position: relative;
 }
 
-.settings-container {
-    height: 100%;
+.properties-container {
+    flex: 1 1 60%;
+    padding-left: 10px;
     background-color: royalblue;
 }
 
@@ -45,100 +55,70 @@ canvas {
     z-index: 2;
 }
 
-.workspace {
-    height: 65%;
-    background-color: pink;
+.roscvm-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding-top: 10px;
 }
 
 /**********/
 
 .filtergroup-add {
+    flex: 0 0 25px;
     text-align: center;
     border: 2px solid #0000FF;
 }
 
+.filtergroup {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    border: 2px solid #d58512;
+}
+
 .filtergroup-header {
-    flex: 0 1 100%;
+    flex: 0 0 25px;
     border: 2px solid #00FFFF;
 }
 
-.filtergroup {
+.filtergroup-body {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-    margin: 0;
-    padding: 0;
+    flex: 1;
+    margin-bottom: 0px;
     border: 2px solid #00FF00;
 }
 
 .filter {
     list-style: none;
-    flex-grow: 1;
+    flex: 1;
+    margin-bottom: 0px;
     border: 2px solid #FF0000;
+    position: relative;
+}
+
+.ep {
+	position:absolute;
+	bottom: 37%;
+	right: 5px;
+	width:1em;
+	height:1em;
+	background-color:orange;
+	cursor:pointer;
+	box-shadow: 0px 0px 2px black;
+	-webkit-transition:-webkit-box-shadow 0.25s ease-in;
+	-moz-transition:-moz-box-shadow 0.25s ease-in;
+	transition:box-shadow 0.25s ease-in;
+}
+
+.ep:hover {
+	box-shadow: 0px 0px 6px black;
 }
 
 .filter-add {
     list-style: none;
     flex: 0 0 60px;
+    margin-bottom: 0px;
     border: 2px solid #FFFF00;
 }
-
-/**********
-.filtergroup-container {
-    height: calc(100% - 60px);
-}
-
-.new-filtergroup {
-    height: 30px;
-    background-color: orange;
-}
-
-.filtergroup {
-    border: 1px solid #000000;
-    background-color: saddlebrown;
-}
-
-.filtergroup-header {
-    height: 25px;
-}
-
-.filtergroup-name {
-    height: 100%;
-    width: 90%;
-    float: left;
-    background-color: yellow;
-}
-
-.filtergroup-delete {
-    height: 100%;
-    width: 10%;
-    float: left;
-    background-color: purple;
-}
-
-.filtergroup-body {
-    height: calc(100% - 25px);
-    background-color: red;
-}
-
-.filter-container {
-    height: 100%;
-    width: calc(100% - 60px);
-    float: left;
-    background-color: cyan;
-}
-
-.new-filter {
-    height: 100%;
-    width: 30px;
-    float: left;
-    background-color: blue;
-}
-
-.filter {
-    height: 100%;
-    float: left;
-    border: 1px solid #000000;
-    background-color: darkgreen;
-} */
