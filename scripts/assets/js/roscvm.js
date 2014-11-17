@@ -1,3 +1,70 @@
+var jsp = null;
+var selected_filter = null;
+var filter = '<dd class="filter sort-disabled"><div class="filter-header"><select class="filter-picker"></select></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></dd>';
+var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"></div><dl class="filtergroup-body"><dd class="filter-add left sort-disabled">◁ Add</dd>' + filter + '<dd class="filter-add right sort-disabled">Add ▷</dd></dl></div></div>';
+
+function init_filtergroup(new_filtergroup) {
+        $(new_filtergroup).find(".filtergroup-body").sortable({
+        tolerance: "pointer",
+        scroll: false,
+        items: ".filter",
+        cancel: ".sort-disabled,.ep",
+        connectWith: ".filtergroup-body",
+        containment: "#workspace",
+        placeholder: "filter-placeholder",
+        sort: function(event, ui) {
+            update_sortable_filters();
+        },
+        stop: function(event, ui) {
+            update_sortable_filters();
+        },
+        update: function(event, ui) {
+            update_sortable_filters();
+        }
+    });
+
+    init_filter(new_filtergroup.find(".filter"));
+}
+
+function init_filter(new_filter) {
+    update_sortable_filters();
+
+    jsp.addEndpoint(new_filter.find(".filter-inputs"),
+        { anchor:[0.5, 0.5, -1, 0] },
+        {
+            endpoint: ["Dot", {radius: 10} ],
+            paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
+            isTarget: true,
+            scope: 'topic'
+        }
+    );
+
+    jsp.addEndpoint(new_filter.find(".filter-outputs"),
+        { anchor:[0.5, 0.5, 1, 0] },
+        {
+            endpoint: ["Dot", {radius: 10} ],
+            paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
+            isSource: true,
+            scope: 'topic',
+            connector: [ "StateMachine", {curviness: 100} ],
+            connectorStyle: {
+                strokeStyle: "#00FF00",
+                lineWidth: 4
+            }
+        }
+    );
+
+    new_filter.click(function() {
+        if(selected_filter != null) {
+            selected_filter.removeClass("bg-info");
+        }
+
+        $(this).addClass("bg-info");
+        selected_filter = $(this);
+
+    });
+}
+
 function update_sortable_filters() {
     $.each($(".filtergroup-body"), function(index, filtergroup) {
         if($(filtergroup).find(".filter").length == 1) {
@@ -7,18 +74,7 @@ function update_sortable_filters() {
         }
     });
 
-    $(".filtergroup-body").sortable("refresh");
-}
-
-function create_sortable_filters() {
-    $(".filtergroup-body").sortable({
-        items: ".filter",
-        cancel: ".sort-disabled .ep",
-        connectWith: ".filtergroup-body",
-        stop: function(event, ui) {
-            update_sortable_filters();
-        }
-    });
+    jsp.repaintEverything();
 }
 
 function draw_image(canvas_id, imgString){
@@ -67,49 +123,6 @@ function build_topic_list(topic_selector_id, data) {
 }
 
 jsPlumb.ready(function() {
-	var instance = jsPlumb.getInstance({
-		Endpoint : ["Dot", {radius:2}],
-		HoverPaintStyle : {strokeStyle:"#1e8151", lineWidth:2 },
-		ConnectionOverlays : [
-			[ "Arrow", {
-				location:1,
-				id:"arrow",
-                length:14,
-                foldback:0.8
-			} ],
-            [ "Label", { label:"FOO", id:"label", cssClass:"aLabel" }]
-		],
-		Container:"roscvm-workspace"
-	});
-
-    window.jsp = instance;
-
-	instance.doWhileSuspended(function() {
-		var isFilterSupported = instance.isDragFilterSupported();
-
-        var eps = jsPlumb.getSelector(".ep");
-        for (var i = 0; i < eps.length; i++) {
-            var e = eps[i], p = e.parentNode;
-            instance.makeSource(e, {
-                parent:p,
-                anchor:"Continuous",
-                connector:[ "StateMachine", { curviness:20 } ],
-                connectorStyle:{ strokeStyle:"#5c96bc",lineWidth:2, outlineColor:"transparent", outlineWidth:4 },
-                maxConnections:5,
-                onMaxConnections:function(info, e) {
-                    alert("Maximum connections (" + info.maxConnections + ") reached");
-                }
-            });
-        }
-	});
-
-	instance.makeTarget(jsPlumb.getSelector(".filter"), {
-		anchor:"Continuous",
-		allowLoopback:true
-	});
-});
-
-$(document).ready(function () {
     var input1 = new WebSocket("ws://localhost:8888/input1/");
     var topics1 = new WebSocket("ws://localhost:8888/input1/topic/");
     var input2 = new WebSocket("ws://localhost:8888/input2/");
@@ -142,27 +155,58 @@ $(document).ready(function () {
         input2.send([$("option:selected", this).text(), $("option:selected", this).val()])
     });
 
-    create_sortable_filters();
+    $(window).resize(function() {
+        jsp.repaintEverything();
+    });
 
     $(".filtergroup-add.top").click(function() {
-        $(this).after('<div class="filtergroup"><div class="filtergroup-header"></div><dl class="filtergroup-body"><dd class="filter-add left sort-disabled">◁ Add</dd><dd class="filter sort-disabled"><div class="ep"></div></dd><dd class="filter-add right sort-disabled">Add ▷</dd></dl></div></div>');
+        var new_filtergroup = $(filtergroup.toString());
 
-        create_sortable_filters();
+        $(this).after(new_filtergroup);
+        init_filtergroup(new_filtergroup);
     });
 
     $(".filtergroup-add.bottom").click(function() {
-        $(this).before('<div class="filtergroup"><div class="filtergroup-header"></div><dl class="filtergroup-body"><dd class="filter-add left sort-disabled">◁ Add</dd><dd class="filter sort-disabled"><div class="ep"></div></dd><dd class="filter-add right sort-disabled">Add ▷</dd></dl></div></div>');
+        var new_filtergroup = $(filtergroup.toString());
 
-        create_sortable_filters();
+        $(this).before(new_filtergroup);
+        init_filtergroup(new_filtergroup);
     });
 
     $("body").on("click", ".filter-add.right", function() {
-        $(this).before('<dd class="filter"><div class="ep"></div></dd>');
-        update_sortable_filters();
+        var new_filter = $(filter.toString());
+
+        $(this).before(new_filter);
+        update_sortable_filters(new_filter);
+        init_filter(new_filter);
     });
 
     $("body").on("click", ".filter-add.left", function() {
-        $(this).after('<dd class="filter"><div class="ep"></div></dd>');
-        update_sortable_filters();
+        var new_filter = $(filter.toString());
+
+        $(this).after(new_filter);
+        update_sortable_filters(new_filter);
+        init_filter(new_filter);
+    });
+
+	jsp = jsPlumb.getInstance({
+		Endpoint : ["Dot", {radius:2}],
+		HoverPaintStyle : {strokeStyle:"#1e8151", lineWidth:2 },
+		ConnectionOverlays : [
+			[ "Arrow", {
+				location:1,
+				id:"arrow",
+                length:14,
+                foldback:0.8
+			} ],
+            [ "Label", { label:"FOO", id:"label", cssClass:"aLabel" }]
+		],
+		Container:"workspace"
+	});
+
+    jsp.doWhileSuspended(function() {
+        jsp.bind("connection", function(info) {
+            info.connection.getOverlay("label").setLabel(info.connection.id);
+        });
     });
 });

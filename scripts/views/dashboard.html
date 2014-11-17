@@ -7,13 +7,21 @@
     <link rel="stylesheet" href="styles/roscvm.css" />
     <script src="scripts/jquery-2.1.1.min.js"></script>
     <script src="scripts/jquery-ui.min.js"></script>
-    <script src="scripts/jquery.jsPlumb-1.7.1-min.js"></script>
+    <script src="scripts/jquery.jsPlumb-1.7.1.js"></script>
     <script src="scripts/roscvm.js"></script>
   </head>
 
     <body>
         <div class="roscvm-wrapper">
             <div class="roscvm-header">
+                <div class="settings-container">
+                    Filterchain settings (save, load, etc.)
+                </div>
+
+                <div class="properties-container">
+                    Filter properties
+                </div>
+
                 <div id="feed1-container" class="feed-container">
                     <canvas id="feed1" width="320" height="240"></canvas>
                     <select id="feed1-topics" class="topic-selector"></select>
@@ -25,23 +33,15 @@
                     <select id="feed2-topics" class="topic-selector"></select>
                     <span id="feed2-info" class="feed-info">TEST 2</span>
                 </div>
-
-                <div class="properties-container">
-                    Blah
-                </div>
             </div>
-
-            <div id="roscvm-workspace" class="roscvm-workspace">
-                <div class="filtergroup-add top">Add △</div>
-                <div class="filtergroup">
-                    <div class="filtergroup-header">Filter Group</div>
-                    <dl class="filtergroup-body">
-                        <dd class="filter-add left sort-disabled">◁ Add</dd>
-                        <dd class="filter sort-disabled"><div class="ep"></div></dd>
-                        <dd class="filter-add right sort-disabled">Add ▷</dd>
-                    </dl>
+            <div class="roscvm-body">
+                <div class="global-inputs">
+                    Topics / Inputs
                 </div>
-                <div class="filtergroup-add bottom">Add ▽</div>
+                <div id="workspace" class="workspace">
+                    <div class="filtergroup-add top">Add △</div>
+                    <div class="filtergroup-add bottom">Add ▽</div>
+                </div>
             </div>
         </div>
 

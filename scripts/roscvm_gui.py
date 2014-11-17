@@ -6,10 +6,10 @@ import tornado.web
 import tornado.websocket
 
 import rospy
-from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
 
+from cv_bridge import CvBridge
 import cv2
 import os.path
 import base64
@@ -23,7 +23,7 @@ class RosCvm_Gui(tornado.web.Application):
             (r"/scripts/(.*)", tornado.web.StaticFileHandler, {"path": "assets/js"}),
             (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "assets/img"}),
             (r"/input([0-9]+)/", SetInputHandler),
-            (r"/input([0-9]+)/topic/", TopicSelectorHandler),
+            (r"/input([0-9]+)/topic/", TopicListHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -60,7 +60,7 @@ class SetInputHandler(tornado.websocket.WebSocketHandler):
         if self.ws_connection is not None:
             self.write_message(base64.encodestring(cv2.imencode('.jpg', img)[1]))
 
-class TopicSelectorHandler(tornado.websocket.WebSocketHandler):
+class TopicListHandler(tornado.websocket.WebSocketHandler):
     def open(self, input_id):
         self.input_id = input_id
         #print [dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))]

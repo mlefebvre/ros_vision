@@ -20,6 +20,17 @@ html, body, .roscvm-container
     flex-direction: row;
 }
 
+.roscvm-body {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    padding-top: 10px;
+}
+
+.global-inputs {
+    flex: 0 0 300px;
+}
+
 .feed-container {
     width: 320px;
     height: 240px;
@@ -27,14 +38,15 @@ html, body, .roscvm-container
     position: relative;
 }
 
+.settings-container {
+    flex: 0 0 300px;
+}
+
 .properties-container {
-    flex: 1 1 60%;
-    padding-left: 10px;
-    background-color: royalblue;
+    flex: 1;
 }
 
 canvas {
-    border: 2px solid #696969;
     background-color: #000000;
     position: relative;
     z-index: 1;
@@ -43,7 +55,7 @@ canvas {
 .feed-info {
     position: absolute;
     bottom: 5px;
-    right: 5px;
+    right: 15px;
     background-color: #ffffff;
     z-index: 2;
 }
@@ -55,7 +67,7 @@ canvas {
     z-index: 2;
 }
 
-.roscvm-workspace {
+.workspace {
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -74,6 +86,7 @@ canvas {
     display: flex;
     flex-direction: column;
     flex: 1;
+    margin: 10px 0px 10px 0px;
     border: 2px solid #d58512;
 }
 
@@ -90,30 +103,50 @@ canvas {
     border: 2px solid #00FF00;
 }
 
-.filter {
+.filter-placeholder {
     list-style: none;
     flex: 1;
-    margin-bottom: 0px;
-    border: 2px solid #FF0000;
+    margin: 0px 10px 0px 10px;
     position: relative;
+    background-color: #5bc0de;
+    border: 2px solid #FF0000;
 }
 
-.ep {
-	position:absolute;
-	bottom: 37%;
-	right: 5px;
-	width:1em;
-	height:1em;
-	background-color:orange;
-	cursor:pointer;
-	box-shadow: 0px 0px 2px black;
-	-webkit-transition:-webkit-box-shadow 0.25s ease-in;
-	-moz-transition:-moz-box-shadow 0.25s ease-in;
-	transition:box-shadow 0.25s ease-in;
+.filter {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    flex: 1;
+    margin: 0px 10px 0px 10px;
+    position: relative;
+    border: 2px solid #FF0000;
 }
 
-.ep:hover {
-	box-shadow: 0px 0px 6px black;
+.filter-header {
+    flex: 0 0 25px;
+    border: 2px solid darkorchid;
+}
+
+.filter-picker {
+    height: 25px;
+    width: 100%;
+}
+
+.filter-body {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    border: 2px solid #000000;
+}
+
+.filter-inputs {
+    flex: 1;
+    border: 2px solid slategray;
+}
+
+.filter-outputs {
+    flex: 1;
+    border: 2px solid slategray;
 }
 
 .filter-add {
