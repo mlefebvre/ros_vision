@@ -100,7 +100,7 @@ function draw_image(canvas_id, imgString){
     };
 }
 
-function update_feed_list(topic_selector_id, data) {
+function update_topic_list(topic_selector_id, data) {
     $("#" + topic_selector_id + "-topics").empty();
     $("#" + topic_selector_id + "-topics").append('<option value="None">None</option>');
     $("#global-inputs").empty();
@@ -122,11 +122,13 @@ function update_feed_list(topic_selector_id, data) {
         });
     });
 
-    $("#" + topic_selector_id + "-topics").val(selected_topic[topic_selector_id]);
-}
+    if(topic_selector_id == "feed1")
+    {
+        console.log(selected_topic[topic_selector_id])
+    }
 
-function update_topic_list(data) {
 
+    $("#" + topic_selector_id + "-topics option:contains(" + selected_topic[topic_selector_id] + ")").attr('selected', true);
 }
 
 jsPlumb.ready(function() {
@@ -142,9 +144,8 @@ jsPlumb.ready(function() {
     };
 
     topics.onmessage = function(evt) {
-        update_feed_list("feed1", evt.data);
-        update_feed_list("feed2", evt.data);
-        update_topic_list(evt.data);
+        update_topic_list("feed1", evt.data);
+        update_topic_list("feed2", evt.data);
     };
 
     input2.onmessage = function(evt) {
@@ -152,12 +153,12 @@ jsPlumb.ready(function() {
     };
 
     $("#feed1-topics").change(function () {
-        selected_topic["feed1"] = $(this).val();
+        selected_topic["feed1"] = $("option:selected", this).text();
         input1.send([$("option:selected", this).text(), $("option:selected", this).val()]);
     });
 
     $("#feed2-topics").change(function () {
-        selected_topic["feed2"] = $(this).val();
+        selected_topic["feed2"] = $("option:selected", this).text();
         input2.send([$("option:selected", this).text(), $("option:selected", this).val()]);
     });
 

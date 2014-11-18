@@ -66,8 +66,12 @@ class TopicListHandler(tornado.websocket.WebSocketHandler):
         self.send_topics()
 
     def send_topics(self):
-        print dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))
-        self.write_message(json.dumps([dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))]))
+        filtered_topics = {}
+        for value, key in rospy.get_published_topics():
+            if key in input_topic_types:
+                filtered_topics.setdefault(key, []).append(value)
+
+        self.write_message(json.dumps([filtered_topics]))
         tornado.ioloop.IOLoop.instance().add_timeout(input_topic_refresh_rate, self.send_topics)
 
 
