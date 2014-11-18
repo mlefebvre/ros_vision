@@ -1,7 +1,8 @@
 var jsp = null;
 var selected_filter = null;
-var filter = '<dd class="filter sort-disabled"><div class="filter-header"><select class="filter-picker"></select></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></dd>';
-var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"></div><dl class="filtergroup-body"><dd class="filter-add left sort-disabled">◁ Add</dd>' + filter + '<dd class="filter-add right sort-disabled">Add ▷</dd></dl></div></div>';
+var selected_topic = {"feed1": "None", "feed2": "None"};
+var filter = '<div class="filter sort-disabled"><div class="filter-header"><select class="filter-picker"></select></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
+var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div>' + filter + '<div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
 
 function init_filtergroup(new_filtergroup) {
         $(new_filtergroup).find(".filtergroup-body").sortable({
@@ -99,34 +100,39 @@ function draw_image(canvas_id, imgString){
     };
 }
 
-function build_topic_list(topic_selector_id, data) {
-    $("#" + topic_selector_id).empty();
-    $("#" + topic_selector_id).append('<option value="None">None</option>');
+function update_feed_list(topic_selector_id, data) {
+    $("#" + topic_selector_id + "-topics").empty();
+    $("#" + topic_selector_id + "-topics").append('<option value="None">None</option>');
+    $("#global-inputs").empty();
 
-    data = JSON.parse(data);
-    topics = data.topics;
-    selected = data.selected;
+    topics = JSON.parse(data);
 
     $.each(topics, function(i, optgroups) {
         $.each(optgroups, function(groupName, options) {
             var $optgroup = $("<optgroup>", {label: groupName});
-            $optgroup.appendTo($("#" + topic_selector_id));
+            $optgroup.appendTo($("#" + topic_selector_id + "-topics"));
 
             $.each(options, function(j, option) {
+                var $link = $("<a>", {text: option, class: "list-group-item"});
                 var $option = $("<option>", {text: option, value: groupName});
+
                 $option.appendTo($optgroup);
+                $("#global-inputs").append('<a href="#" class=list-group-item list-group-item-warning">' + option + '</a>');
             });
         });
     });
 
-    $("#" + topic_selector_id + " option").filter(function () { return $(this).html() == selected; }).val();
+    $("#" + topic_selector_id + "-topics").val(selected_topic[topic_selector_id]);
+}
+
+function update_topic_list(data) {
+
 }
 
 jsPlumb.ready(function() {
     var input1 = new WebSocket("ws://localhost:8888/input1/");
-    var topics1 = new WebSocket("ws://localhost:8888/input1/topic/");
     var input2 = new WebSocket("ws://localhost:8888/input2/");
-    var topics2 = new WebSocket("ws://localhost:8888/input1/topic/");
+    var topics = new WebSocket("ws://localhost:8888/topiclist/");
 
     draw_image("feed1", "None");
     draw_image("feed2", "None");
@@ -135,24 +141,24 @@ jsPlumb.ready(function() {
         draw_image("feed1", evt.data);
     };
 
-    topics1.onmessage = function(evt) {
-        build_topic_list("feed1-topics", evt.data);
+    topics.onmessage = function(evt) {
+        update_feed_list("feed1", evt.data);
+        update_feed_list("feed2", evt.data);
+        update_topic_list(evt.data);
     };
 
     input2.onmessage = function(evt) {
         draw_image("feed2", evt.data);
     };
 
-    topics2.onmessage = function(evt) {
-        build_topic_list("feed2-topics", evt.data);
-    };
-
     $("#feed1-topics").change(function () {
-        input1.send([$("option:selected", this).text(), $("option:selected", this).val()])
+        selected_topic["feed1"] = $(this).val();
+        input1.send([$("option:selected", this).text(), $("option:selected", this).val()]);
     });
 
     $("#feed2-topics").change(function () {
-        input2.send([$("option:selected", this).text(), $("option:selected", this).val()])
+        selected_topic["feed2"] = $(this).val();
+        input2.send([$("option:selected", this).text(), $("option:selected", this).val()]);
     });
 
     $(window).resize(function() {

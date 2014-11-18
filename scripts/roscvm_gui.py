@@ -14,6 +14,7 @@ import cv2
 import os.path
 import base64
 import json
+import datetime
 
 class RosCvm_Gui(tornado.web.Application):
     def __init__(self):
@@ -23,7 +24,7 @@ class RosCvm_Gui(tornado.web.Application):
             (r"/scripts/(.*)", tornado.web.StaticFileHandler, {"path": "assets/js"}),
             (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "assets/img"}),
             (r"/input([0-9]+)/", SetInputHandler),
-            (r"/input([0-9]+)/topic/", TopicListHandler),
+            (r"/topiclist/", TopicListHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -61,22 +62,20 @@ class SetInputHandler(tornado.websocket.WebSocketHandler):
             self.write_message(base64.encodestring(cv2.imencode('.jpg', img)[1]))
 
 class TopicListHandler(tornado.websocket.WebSocketHandler):
-    def open(self, input_id):
-        self.input_id = input_id
-        #print [dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))]
-        self.write_message(
-            json.dumps(
-                {
-                    "topics" : [dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))],
-                    "selected": "None"
-                }
-            )
-        )
+    def open(self):
+        self.send_topics()
+
+    def send_topics(self):
+        print dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))
+        self.write_message(json.dumps([dict(filter(lambda topic: topic[0] in input_topic_types, [[topic[1], [topic[0]]] for topic in rospy.get_published_topics()]))]))
+        tornado.ioloop.IOLoop.instance().add_timeout(input_topic_refresh_rate, self.send_topics)
+
 
 if __name__ == "__main__":
     rospy.init_node('roscvm_gui')
 
     input_topic_types = rospy.get_param('~input_topic_types', {'sensor_msgs/Image' : Image, 'sensor_msgs/PointCloud2': PointCloud2})
+    input_topic_refresh_rate = datetime.timedelta(seconds=rospy.get_param('~input_topic_refresh_rate', 1))
 
     http_server = tornado.httpserver.HTTPServer(RosCvm_Gui())
     http_server.listen(8888)

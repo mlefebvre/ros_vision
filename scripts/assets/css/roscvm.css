@@ -29,6 +29,7 @@ html, body, .roscvm-container
 
 .global-inputs {
     flex: 0 0 300px;
+    margin: 15px 20px 0 0;
 }
 
 .feed-container {
