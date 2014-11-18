@@ -1,4 +1,7 @@
 main:
+  aaa:
+    type: Blur
+    order: 0
   blur:
     type: Blur
     order: 1
