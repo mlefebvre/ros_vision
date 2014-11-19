@@ -3,6 +3,7 @@ var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
 var filter = '<div class="filter sort-disabled"><div class="filter-header"><select class="filter-picker"></select></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
 var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div>' + filter + '<div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
+var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
 
 function init_filtergroup(new_filtergroup) {
         $(new_filtergroup).find(".filtergroup-body").sortable({
@@ -36,7 +37,7 @@ function init_filter(new_filter) {
             endpoint: ["Dot", {radius: 10} ],
             paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
             isTarget: true,
-            scope: 'topic'
+            scope: 'sensor_msgs/Image'
         }
     );
 
@@ -46,8 +47,9 @@ function init_filter(new_filter) {
             endpoint: ["Dot", {radius: 10} ],
             paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
             isSource: true,
-            scope: 'topic',
+            scope: 'sensor_msgs/Image',
             connector: [ "StateMachine", {curviness: 100} ],
+            maxConnections:5,
             connectorStyle: {
                 strokeStyle: "#00FF00",
                 lineWidth: 4
@@ -103,7 +105,6 @@ function draw_image(canvas_id, imgString){
 function update_topic_list(topic_selector_id, data) {
     $("#" + topic_selector_id + "-topics").empty();
     $("#" + topic_selector_id + "-topics").append('<option value="None">None</option>');
-    $("#global-inputs").empty();
 
     topics = JSON.parse(data);
 
@@ -117,16 +118,21 @@ function update_topic_list(topic_selector_id, data) {
                 var $option = $("<option>", {text: option, value: groupName});
 
                 $option.appendTo($optgroup);
-                $("#global-inputs").append('<a href="#" class=list-group-item list-group-item-warning">' + option + '</a>');
+                if($("#" + groupName.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + option + ")").length == 0) {
+                    jsp.makeSource($(topic_input(option)).appendTo("#" + groupName.split("/").pop().toLowerCase() + "-inputs"),
+                        {
+                            anchor: "Right",
+                            scope: groupName,
+                            connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
+                            connectorStyle: {
+                                strokeStyle: "#0000FF",
+                                lineWidth: 4
+                            }
+                        });
+                }
             });
         });
     });
-
-    if(topic_selector_id == "feed1")
-    {
-        console.log(selected_topic[topic_selector_id])
-    }
-
 
     $("#" + topic_selector_id + "-topics option:contains(" + selected_topic[topic_selector_id] + ")").attr('selected', true);
 }
@@ -138,6 +144,10 @@ jsPlumb.ready(function() {
 
     draw_image("feed1", "None");
     draw_image("feed2", "None");
+
+    $(window).resize(function() {
+        jsp.repaintEverything();
+    });
 
     input1.onmessage = function(evt) {
         draw_image("feed1", evt.data);
@@ -160,10 +170,6 @@ jsPlumb.ready(function() {
     $("#feed2-topics").change(function () {
         selected_topic["feed2"] = $("option:selected", this).text();
         input2.send([$("option:selected", this).text(), $("option:selected", this).val()]);
-    });
-
-    $(window).resize(function() {
-        jsp.repaintEverything();
     });
 
     $(".filtergroup-add.top").click(function() {
