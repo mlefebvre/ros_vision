@@ -1,6 +1,7 @@
 main:
   aaa:
     type: Blur
+    input: /test
     order: 0
   blur:
     type: Blur

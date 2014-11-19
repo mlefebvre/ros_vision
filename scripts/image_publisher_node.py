@@ -18,5 +18,6 @@ msg = bridge.cv2_to_imgmsg(im, encoding="bgr8")
 pub = rospy.Publisher(topic, Image, queue_size=10)
 
 while not rospy.is_shutdown():
+    msg.header.stamp = rospy.get_rostime()
     pub.publish(msg)
     rospy.sleep(1)

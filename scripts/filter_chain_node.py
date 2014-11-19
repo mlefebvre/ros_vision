@@ -20,6 +20,7 @@ def update_filter_topic():
             d = ros_vision.msg.IODescriptor()
             name = i.get_name()
             d.name = name
+            d.type = str(i.get_io_type().get_ros_type()._type)
             d.topic = IOManager().format_topic_name(f.get_io_name(name))
             filter.inputs.append(d)
 
@@ -27,6 +28,7 @@ def update_filter_topic():
             d = ros_vision.msg.IODescriptor()
             name = o.get_name()
             d.name = name
+            d.type = str(o.get_io_type().get_ros_type()._type)
             d.topic = IOManager().format_topic_name(f.get_io_name(name))
             filter.outputs.append(d)
 

@@ -4,6 +4,8 @@ from ..parameter_descriptor import ParameterDescriptor
 from ..io_descriptor import IODescriptor
 from ...IO.image import Image
 import cv2
+import numpy as np
+
 
 class HSVThresholdFilter(Filter):
     descriptor = FilterDescriptor("HSVThreshold", "Thresholds an HSV image",
@@ -23,7 +25,9 @@ class HSVThresholdFilter(Filter):
     def execute(self, time=0):
         im = self.get_input("input")
         if im:
-            im2 = Image(cv2.inRange(im.get_image(), (self.get_param("min_hue"), self.get_param("min_saturation"), self.get_param("min_value")),
-                                                    (self.get_param("max_hue"), self.get_param("max_saturation"), self.get_param("max_value"))))
+            min_hsv = np.array([self.get_param("min_hue"), self.get_param("min_saturation"), self.get_param("min_value")], np.uint8)
+            max_hsv = np.array([self.get_param("max_hue"), self.get_param("max_saturation"), self.get_param("max_value")], np.uint8)
+
+            im2 = Image(cv2.inRange(im.get_image(), min_hsv, max_hsv))
             im.copy_header(im2)
             self.set_output("output", im2)

@@ -34,14 +34,13 @@ class IOManager:
             subscriber.unregister()
             del self._subscribers[name]
 
-    def _topic_callback(self, msg):
-        topic = msg._connection_header['topic']
+    def _topic_callback(self, msg, topic):
         self._last_values[topic] = msg
 
     def watch_topic(self, name, topic_type):
         name = self.format_topic_name(name)
         if not name in self._publishers:
-            self._subscribers[name] = rospy.Subscriber(name, topic_type.get_ros_type(), self._topic_callback)
+            self._subscribers[name] = rospy.Subscriber(name, topic_type.get_ros_type(), self._topic_callback, callback_args=name)
         self._subscribers_types[name] = topic_type
 
     def update_value(self, name, value):

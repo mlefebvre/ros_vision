@@ -1,84 +1,115 @@
 import rospy
-from pygraph.classes.digraph import digraph
-from pygraph.readwrite.dot import write
-from ros_vision.msg import Filter, FilterList
-from pygraph.algorithms.searching import depth_first_search
+from ros_vision.msg import FilterList
+import networkx as nx
+import roslib
+
+
 class Scheduler:
-    filters = {}
-    graph = None
+    groups = {}
+    filter_inputs = {}
+    filter_outputs = {}
+    graphs = []
     update = False
+    start_topics = []
+    end_topics = []
+    end_listeners = []
+
 
     i = 0
     def __init__(self):
         pass
 
     def update_graph(self):
-        old_graph = self.graph
-        self.graph = digraph()
+        graph = nx.DiGraph()
 
-        for f in self.filters.keys():
-            self.graph.add_node(f)
+        graph.add_nodes_from(self.filter_inputs.keys())
 
-        for f, inputs in self.filters.items():
-            for i in inputs:
+        for f, inputs in self.filter_inputs.items():
+            for i, t in inputs:
                 input_filter = "/".join(i.split("/")[:3])
-                if not self.graph.has_node(input_filter):
-                    self.graph.add_node(input_filter)
-                edge = (input_filter, f)
-                if not self.graph.has_edge(edge):
-                    self.graph.add_edge(edge)
+                if not graph.has_node(input_filter):
+                    graph.add_node(input_filter)
 
-        if old_graph is not None and write(self.graph) != write(old_graph):
-            self.update = True
+                if f != input_filter:
+                    if not graph.has_edge(input_filter, f):
+                        graph.add_edge(input_filter, f, {'topic': (i, t)})
 
-        # dot = write(self.graph)
-        # import gv
-        # gvv = gv.readstring(dot)
-        #
-        # gv.layout(gvv,'dot')
-        # self.i += 1
-        # gv.render(gvv,'png','/home/mathieu/test' + str(self.i) + '.png')
+        graphs = []
 
+        edges = graph.edges()
+        for subgraph in nx.connected_component_subgraphs(graph.to_undirected()):
+            g = nx.DiGraph()
+            g.add_nodes_from(subgraph)
+            for e in edges:
+                if g.has_node(e[0]) or g.has_node(e[1]):
+                    g.add_edge(e[0], e[1], attr_dict=graph.get_edge_data(e[0], e[1]))
+            graphs.append(g)
 
-    def filter_update_callback(self, msg):
-        fc_node_name = msg._connection_header['callerid']
+        self.graphs = graphs
+        self.update = True
+
+    def filter_update_callback(self, msg, fc_node_name):
+        self.groups[fc_node_name] = msg
         for f in msg.filters:
-            #print f
             name = fc_node_name + "/" + f.name
-            self.filters[name] = [i.topic for i in f.inputs]
-            self.update_graph()
+            self.filter_inputs[name] = [(i.topic, i.type) for i in f.inputs]
+            self.filter_outputs[name] = [(o.topic, o.type) for o in f.outputs]
 
-    def add_filter_chain_node(self, name):
-        rospy.Subscriber("/%s/filters" % name, FilterList, self.filter_update_callback)
+        self.update_graph()
 
-    def _find_root_nodes(self):
-        root_nodes = []
-        nodes = self.graph.nodes()
-        edges = self.graph.edges()
-        for n in nodes:
-            inputs = sum([1 for e in edges if e[1] == n])
-            if inputs == 0:
-                root_nodes.append(n)
-        return root_nodes
+    def add_filter_chain_group(self, name):
+        name = "/" + name
+        self.groups[name] = None
+        rospy.Subscriber("%s/filters" % name, FilterList, self.filter_update_callback, callback_args=name)
 
-    def _find_end_nodes(self):
-        end_nodes = []
-        nodes = self.graph.nodes()
-        edges = self.graph.edges()
-        for n in nodes:
-            inputs = sum([1 for e in edges if e[0] == n])
-            if inputs == 0:
-                end_nodes.append(n)
-        return end_nodes
+    def _find_start_topics(self):
+        start_topics = []
+        for graph in self.graphs:
+            s = []
+            for n in graph.nodes():
+                if len(graph.predecessors(n)) == 0:
+                    sucessors = graph.successors(n)
+                    if len(sucessors) != 0:
+                        s.append(graph.get_edge_data(n, sucessors[0])["topic"])
+            start_topics.append(s)
+        return start_topics
+
+    def _find_end_topics(self):
+        end_topics = []
+        for graph in self.graphs:
+            e = []
+            for n in graph.nodes():
+                if len(graph.successors(n)) == 0:
+                    e.extend(self.filter_outputs[n])
+            end_topics.append(e)
+        return end_topics
+
+    def _topic_callback(self, msg, topic_name):
+        if hasattr(msg, "header"):
+            time = msg.header.stamp.to_sec()
+        else:
+            time = rospy.get_time()
+        print topic_name, time
 
     def run(self):
-        while not rospy.is_shutdown():
-            if self.graph is not None:
-                if self.update:
-                    self.update = False
-                    print self._find_root_nodes()
-                    print self._find_end_nodes()
+        while sum([1 for g in self.groups.values() if g is None]) > 0:
+            rospy.sleep(0.5)
 
-            #Trouver graphes déconnectés
+        while not rospy.is_shutdown():
+            if self.update:
+                self.update = False
+                self.start_topics = self._find_start_topics()
+                self.end_topics = self._find_end_topics()
+
+                for l in self.end_listeners:
+                    l.unregister()
+                self.end_listeners = []
+
+
+                for group in self.end_topics:
+                    for topic_name, topic_type in group:
+                        topic_type = roslib.message.get_message_class(topic_type)
+                        l = rospy.Subscriber(topic_name, topic_type, self._topic_callback, callback_args=topic_name)
+                        self.end_listeners.append(l)
 
             rospy.sleep(1)

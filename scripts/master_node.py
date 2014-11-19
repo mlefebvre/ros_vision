@@ -20,7 +20,7 @@ def load_yaml(file_name):
     with open(name, 'r') as f:
         return yaml.load(f)
 
-def create_filter_chain_node(name, params):
+def create_filter_chain_group(name, params):
     f = FilterChainNodeWrapper(name, params)
     nodes[name] = f
 
@@ -29,12 +29,12 @@ nodes = {}
 config_file = rospy.get_param("~config", default="configs/test_vert_orange.yaml")#default.yaml")
 config = load_yaml(config_file)
 for name, params in config.items():
-    create_filter_chain_node(name, params)
+    create_filter_chain_group(name, params)
 
 scheduler = Scheduler()
 
 for name in nodes.keys():
-    scheduler.add_filter_chain_node(name)
+    scheduler.add_filter_chain_group(name)
 
 scheduler.run()
 
