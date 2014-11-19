@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ROSCVM</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles/bootstrap.min.css" />
+    <link rel="stylesheet" href="styles/roscvm.css" />
+    <script src="scripts/jquery-2.1.1.min.js"></script>
+    <script src="scripts/jquery-ui.min.js"></script>
+    <script src="scripts/jquery.jsPlumb-1.7.1-min.js"></script>
+    <script src="scripts/roscvm.js"></script>
+  </head>
+
+    <body>
+        <div class="roscvm-wrapper">
+            <div class="roscvm-header">
+                <div class="settings-container">
+                    Filterchain settings (save, load, etc.)
+                </div>
+
+                <div class="properties-container">
+                    Filter properties
+                </div>
+
+                <div id="feed1-container" class="feed-container">
+                    <canvas id="feed1" width="320" height="240"></canvas>
+                    <select id="feed1-topics" class="topic-selector"></select>
+                    <span id="feed1-info" class="feed-info">TEST 1</span>
+                </div>
+
+                <div id="feed2-container" class="feed-container">
+                    <canvas id="feed2" width="320" height="240"></canvas>
+                    <select id="feed2-topics" class="topic-selector"></select>
+                    <span id="feed2-info" class="feed-info">TEST 2</span>
+                </div>
+            </div>
+            <div id="roscvm-body" class="roscvm-body">
+                <div class="inputs-container">
+                    <div id="image-inputs" class="topic-inputs list-group">
+                        <a href="#" class="list-group-item"><h4 class="list-group-item-heading">Image outputs</h4></a>
+                    </div>
+                    <div id="pointcloud2-inputs" class="topic-inputs list-group">
+                        <a href="#" class="list-group-item"><h4 class="list-group-item-heading">Point Cloud outputs</h4></a>
+                    </div>
+                </div>
+                <div id="workspace" class="workspace">
+                    <div class="filtergroup-add top">Add △</div>
+                    <div class="filtergroup-add bottom">Add ▽</div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
