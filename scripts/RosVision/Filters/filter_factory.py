@@ -9,7 +9,7 @@ class FilterFactory:
         pass
 
     @staticmethod
-    def create_filter(name, filter_type, params=None):
+    def create_filter(name, filter_type, params={}):
         pkgpath = os.path.dirname(os.path.realpath(__file__))
         for _, module, _ in pkgutil.iter_modules([pkgpath]):
             if module.lower() == filter_type.lower():
@@ -22,7 +22,6 @@ class FilterFactory:
                                 return c(name, params)
                         except:
                             pass
-
 
 
 

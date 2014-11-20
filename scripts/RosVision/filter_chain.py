@@ -16,7 +16,7 @@ class FilterChain:
         else:
             pass
 
-    def create_filter(self, name, filter_type, params=None):
+    def create_filter(self, name, filter_type, params={}):
         f = FilterFactory.create_filter(name, filter_type, params)
         self._filters[name] = f
         self._filter_list.append(f)

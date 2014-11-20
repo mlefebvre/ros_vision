@@ -3,6 +3,7 @@
 import roslib; roslib.load_manifest('ros_vision')
 import rospy
 from RosVision.filter_chain import FilterChain
+from RosVision.Filters.filter_factory import FilterFactory
 import ros_vision.srv
 import ros_vision.msg
 from RosVision.io_manager import IOManager
@@ -10,6 +11,11 @@ from RosVision.io_manager import IOManager
 def update_filter_topic():
     msg = ros_vision.msg.FilterList()
     for f in fc.get_filters():
+        msg.filters.append(create_filter_message(f))
+
+    filter_topic.publish(msg)
+
+def create_filter_message(f):
         descriptor = f.get_descriptor()
 
         filter = ros_vision.msg.Filter()
@@ -42,9 +48,7 @@ def update_filter_topic():
             parameter.max = str(p.get_max_value())
             filter.parameters.append(parameter)
 
-        msg.filters.append(filter)
-
-    filter_topic.publish(msg)
+        return filter
 
 def create_filter(req):
     params = {}
@@ -57,11 +61,15 @@ def create_filter(req):
     update_filter_topic()
     return ros_vision.srv.CreateFilterResponse()
 
+def get_filter_info(req):
+    return create_filter_message(FilterFactory.create_filter("", req.type))
+
 rospy.init_node('filter_chain_node')
 
 fc = FilterChain()
 
 create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFilter, create_filter)
+get_filter_info_service = rospy.Service('~get_filter_info', ros_vision.srv.GetFilterInfo, get_filter_info)
 filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size=1, latch=True)
 rate = rospy.Rate(20)
 

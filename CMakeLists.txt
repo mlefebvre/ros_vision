@@ -57,6 +57,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    CreateFilter.srv
+   GetFilterInfo.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -72,6 +73,7 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     sensor_msgs
     std_msgs
+    ros_vision
 )
 
 ###################################

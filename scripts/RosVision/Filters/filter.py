@@ -23,7 +23,7 @@ class Filter:
         self._params = params
 
     def _format_io_name(self, name):
-        if name.find("/") < 0:
+        if name.find("/") < 0 and self.name is not None:
             name = self.name + "/" + name
         return name
 
