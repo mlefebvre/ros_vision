@@ -58,6 +58,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    CreateFilter.srv
    GetFilterInfo.srv
+   ListFilters.srv
  )
 
 ## Generate actions in the 'action' folder

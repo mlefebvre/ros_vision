@@ -1,8 +1,9 @@
 var jsp = null;
 var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
-var filter = '<div class="filter sort-disabled"><div class="filter-header"><select class="filter-picker"></select></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
+var filter = '<div class="filter sort-disabled"><div class="filter-header"></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
 var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div>' + filter + '<div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
+var filter_picker = null;
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
 
 function init_filtergroup(new_filtergroup) {
@@ -30,6 +31,7 @@ function init_filtergroup(new_filtergroup) {
 
 function init_filter(new_filter) {
     update_sortable_filters();
+    update_filter_list(new_filter);
 
     jsp.addEndpoint(new_filter.find(".filter-inputs"),
         { anchor:[0.5, 0.5, -1, 0] },
@@ -137,10 +139,15 @@ function update_topic_list(topic_selector_id, data) {
     $("#" + topic_selector_id + "-topics option:contains(" + selected_topic[topic_selector_id] + ")").attr('selected', true);
 }
 
+function update_filter_list(filter) {
+    filter.find(".filter-header").append(filter_picker);
+}
+
 jsPlumb.ready(function() {
     var input1 = new WebSocket("ws://localhost:8888/input1/");
     var input2 = new WebSocket("ws://localhost:8888/input2/");
     var topics = new WebSocket("ws://localhost:8888/topiclist/");
+    var filters = new WebSocket("ws://localhost:8888/filterlist/");
 
     draw_image("feed1", "None");
     draw_image("feed2", "None");
@@ -153,14 +160,25 @@ jsPlumb.ready(function() {
         draw_image("feed1", evt.data);
     };
 
+    input2.onmessage = function(evt) {
+        draw_image("feed2", evt.data);
+    };
+
     topics.onmessage = function(evt) {
         update_topic_list("feed1", evt.data);
         update_topic_list("feed2", evt.data);
     };
 
-    input2.onmessage = function(evt) {
-        draw_image("feed2", evt.data);
+    filters.onmessage = function(evt) {
+        filter_picker = $("<select></select>").addClass("filter-picker").change(function() {
+
+        });
+
+        $.each(JSON.parse(evt.data), function(filter_name) {
+             $(filter_picker).append($("<option></option>").val(filter_name).text(filter_name));
+        });
     };
+
 
     $("#feed1-topics").change(function () {
         selected_topic["feed1"] = $("option:selected", this).text();

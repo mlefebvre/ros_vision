@@ -8,6 +8,7 @@ import tornado.websocket
 import rospy
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
+from ros_vision.srv import ListFilters
 
 from cv_bridge import CvBridge
 import cv2
@@ -25,6 +26,7 @@ class RosCvm_Gui(tornado.web.Application):
             (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "assets/img"}),
             (r"/input([0-9]+)/", SetInputHandler),
             (r"/topiclist/", TopicListHandler),
+            (r"/filterlist/", FilterListHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -73,6 +75,12 @@ class TopicListHandler(tornado.websocket.WebSocketHandler):
 
         self.write_message(json.dumps([filtered_topics]))
         tornado.ioloop.IOLoop.instance().add_timeout(input_topic_refresh_rate, self.send_topics)
+
+class FilterListHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        rospy.wait_for_service('/filter_chain_node/list_filters')
+        list_filters = rospy.ServiceProxy('/filter_chain_node/list_filters', ListFilters)
+        self.write_message(json.dumps(list_filters().filters))
 
 
 if __name__ == "__main__":

@@ -59,10 +59,17 @@ def create_filter(req):
 
     fc.create_filter(req.name, req.type, params)
     update_filter_topic()
+
     return ros_vision.srv.CreateFilterResponse()
 
 def get_filter_info(req):
     return create_filter_message(FilterFactory.create_filter("", req.type))
+
+def list_filters(req):
+    res = ros_vision.srv.ListFiltersResponse();
+    res.filters = FilterFactory.list_filters()
+
+    return res
 
 rospy.init_node('filter_chain_node')
 
@@ -70,6 +77,7 @@ fc = FilterChain()
 
 create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFilter, create_filter)
 get_filter_info_service = rospy.Service('~get_filter_info', ros_vision.srv.GetFilterInfo, get_filter_info)
+list_filters_service = rospy.Service('~list_filters', ros_vision.srv.ListFilters, list_filters)
 filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size=1, latch=True)
 rate = rospy.Rate(20)
 

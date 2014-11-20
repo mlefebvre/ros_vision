@@ -23,5 +23,6 @@ class FilterFactory:
                         except:
                             pass
 
-
-
+    @staticmethod
+    def list_filters():
+        return [name for name in os.listdir(os.path.dirname(__file__)) if os.path.isdir(os.path.join(os.path.dirname(__file__), name))]
