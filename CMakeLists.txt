@@ -51,6 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
    IODescriptor.msg
    Parameter.msg
    PolygonListStamped.msg
+   StartSignal.msg
  )
 
 ## Generate services in the 'srv' folder

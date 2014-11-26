@@ -20,7 +20,7 @@ class Node:
             command = "python -m cProfile -o %s %s __name:=%s" % ("~/profiler.txt", script_path, self.name)
             self.process = subprocess.Popen(command, shell=True)
         else:
-            self.process = subprocess.Popen('rosrun %s %s __name:=%s' % (self.package, self.type, self.name), shell=True)
+            self.process = subprocess.Popen(('rosrun %s %s __name:=%s' % (self.package, self.type, self.name)).split(), stdout=subprocess.PIPE)
 
     def kill(self):
         rospy.loginfo("Killing /%s" % self.name)

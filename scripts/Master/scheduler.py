@@ -1,5 +1,5 @@
 import rospy
-from ros_vision.msg import FilterList
+from ros_vision.msg import FilterList, StartSignal
 import networkx as nx
 import roslib
 
@@ -10,10 +10,13 @@ class Scheduler:
     filter_outputs = {}
     graphs = []
     update = False
-    start_topics = []
-    end_topics = []
-    end_listeners = []
-
+    input_topics = []
+    output_topics = []
+    input_listeners = []
+    output_listeners = []
+    last_input_time = []
+    output_status = []
+    loop_count = []
 
     i = 0
     def __init__(self):
@@ -62,8 +65,8 @@ class Scheduler:
         self.groups[name] = None
         rospy.Subscriber("%s/filters" % name, FilterList, self.filter_update_callback, callback_args=name)
 
-    def _find_start_topics(self):
-        start_topics = []
+    def _find_input_topics(self):
+        input_topics = []
         for graph in self.graphs:
             s = []
             for n in graph.nodes():
@@ -71,25 +74,42 @@ class Scheduler:
                     sucessors = graph.successors(n)
                     if len(sucessors) != 0:
                         s.append(graph.get_edge_data(n, sucessors[0])["topic"])
-            start_topics.append(s)
-        return start_topics
+            input_topics.append(s)
+        return input_topics
 
-    def _find_end_topics(self):
-        end_topics = []
+    def _find_output_topics(self):
+        output_topics = []
         for graph in self.graphs:
             e = []
             for n in graph.nodes():
                 if len(graph.successors(n)) == 0:
                     e.extend(self.filter_outputs[n])
-            end_topics.append(e)
-        return end_topics
+            output_topics.append(e)
+        return output_topics
 
-    def _topic_callback(self, msg, topic_name):
+    def _input_topic_callback(self, msg, topic_name):
         if hasattr(msg, "header"):
             time = msg.header.stamp.to_sec()
         else:
             time = rospy.get_time()
-        print topic_name, time
+        for group_id, group in enumerate(self.last_input_time):
+            if topic_name in group:
+                group[topic_name] = time
+                if self.loop_count[group_id] == 0:
+                    if sum([1 for t in group if t == -1]) == 0:
+                        print "Signal"
+
+
+    def _output_topic_callback(self, msg, topic_name):
+        for group_id, group in enumerate(self.output_status):
+            if topic_name in group:
+                #Lock ici?
+                group[topic_name] = True
+                if len(group.keys()) == sum([1 for t in group.values() if t]):
+                    print self.last_input_time[group_id]
+                    self.loop_count[group_id] += 1
+                    for t in group.keys():
+                        group[t] = False
 
     def run(self):
         while sum([1 for g in self.groups.values() if g is None]) > 0:
@@ -98,18 +118,35 @@ class Scheduler:
         while not rospy.is_shutdown():
             if self.update:
                 self.update = False
-                self.start_topics = self._find_start_topics()
-                self.end_topics = self._find_end_topics()
+                self.input_topics = self._find_input_topics()
+                self.output_topics = self._find_output_topics()
 
-                for l in self.end_listeners:
-                    l.unregister()
-                self.end_listeners = []
+                while len(self.input_listeners) > 0:
+                    self.input_listeners[0].unregister()
+                    del self.input_listeners[0]
 
+                while len(self.output_listeners) > 0:
+                    self.output_listeners[0].unregister()
+                    del self.output_listeners[0]
 
-                for group in self.end_topics:
+                self.last_input_time = []
+                self.loop_count = []
+                for group in self.input_topics:
+                    self.last_input_time.append({})
+                    self.loop_count.append(0)
                     for topic_name, topic_type in group:
+                        self.last_input_time[-1][topic_name] = -1
                         topic_type = roslib.message.get_message_class(topic_type)
-                        l = rospy.Subscriber(topic_name, topic_type, self._topic_callback, callback_args=topic_name)
-                        self.end_listeners.append(l)
+                        l = rospy.Subscriber(topic_name, topic_type, self._input_topic_callback, callback_args=topic_name)
+                        self.input_listeners.append(l)
+
+                self.output_status = []
+                for group in self.output_topics:
+                    self.output_status.append({})
+                    for topic_name, topic_type in group:
+                        self.output_status[-1][topic_name] = False
+                        topic_type = roslib.message.get_message_class(topic_type)
+                        l = rospy.Subscriber(topic_name, topic_type, self._output_topic_callback, callback_args=topic_name)
+                        self.output_listeners.append(l)
 
             rospy.sleep(1)

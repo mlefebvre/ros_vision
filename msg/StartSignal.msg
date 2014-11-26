@@ -1,5 +1,2 @@
-string name
-string description
-IODescriptor[] inputs
-IODescriptor[] outputs
-Parameter[] parameters
+string[] input_name
+time[] input_time
