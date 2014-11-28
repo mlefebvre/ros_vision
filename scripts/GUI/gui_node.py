@@ -14,7 +14,7 @@ from cv_bridge import CvBridge
 import cv2
 import os.path
 import base64
-import json
+import jsonpickle as json
 import datetime
 
 class RosCvm_Gui(tornado.web.Application):
@@ -24,9 +24,9 @@ class RosCvm_Gui(tornado.web.Application):
             (r"/styles/(.*)", tornado.web.StaticFileHandler, {"path": "assets/css"}),
             (r"/scripts/(.*)", tornado.web.StaticFileHandler, {"path": "assets/js"}),
             (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "assets/img"}),
-            (r"/input([0-9]+)/", SetInputHandler),
-            (r"/topiclist/", TopicListHandler),
-            (r"/filterlist/", FilterListHandler),
+            (r"/input([0-9]+)/", InputsHandler),
+            (r"/topics/", TopicsHandler),
+            (r"/filters/", FiltersHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -41,7 +41,7 @@ class DashBoardHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('dashboard.html')
 
-class SetInputHandler(tornado.websocket.WebSocketHandler):
+class InputsHandler(tornado.websocket.WebSocketHandler):
     def open(self, topic):
         #rospy.Subscriber("/capra_camera/image", Image, self.on_image)
         self.input_subscriber = None
@@ -63,7 +63,7 @@ class SetInputHandler(tornado.websocket.WebSocketHandler):
         if self.ws_connection is not None:
             self.write_message(base64.encodestring(cv2.imencode('.jpg', img)[1]))
 
-class TopicListHandler(tornado.websocket.WebSocketHandler):
+class TopicsHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         self.send_topics()
 
@@ -73,14 +73,14 @@ class TopicListHandler(tornado.websocket.WebSocketHandler):
             if key in input_topic_types:
                 filtered_topics.setdefault(key, []).append(value)
 
-        self.write_message(json.dumps([filtered_topics]))
+        self.write_message(json.encode([filtered_topics]), unpicklable=False)
         tornado.ioloop.IOLoop.instance().add_timeout(input_topic_refresh_rate, self.send_topics)
 
-class FilterListHandler(tornado.websocket.WebSocketHandler):
+class FiltersHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         rospy.wait_for_service('/filter_chain_node/list_filters')
         list_filters = rospy.ServiceProxy('/filter_chain_node/list_filters', ListFilters)
-        self.write_message(json.dumps(list_filters().filters))
+        self.write_message(json.encode(list_filters().filter_list.filters, unpicklable=False))
 
 
 if __name__ == "__main__":

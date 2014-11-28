@@ -3,7 +3,57 @@ var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
 var filter = '<div class="filter sort-disabled"><div class="filter-header"></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
 var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div>' + filter + '<div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
-var filter_picker = null;
+var filter_metadata = null;
+var filter_picker = $("<select></select>").addClass("filter-picker").change(function() {
+    inputs = $(this).closest(".filter").find(".filter-inputs");
+    outputs = $(this).closest(".filter").find(".filter-outputs");
+    filter_picker_selection = $(this).val();
+
+    jsp.removeAllEndpoints(inputs);
+    jsp.removeAllEndpoints(outputs);
+
+    if(filter_picker_selection != "None") {
+        filter_picker_selection = filter_metadata.filter(function(f) {
+            return f.name == filter_picker_selection;
+        });
+
+        var i = 1;
+        for(f in filter_picker_selection[0].inputs) {
+            jsp.addEndpoint(inputs,
+                { anchor:[0.5, i * (1.0 / (filter_picker_selection[0].inputs.length + 1)), -1, 0] },
+                {
+                    endpoint: ["Dot", {radius: 5} ],
+                    paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
+                    isTarget: true,
+                    scope: 'sensor_msgs/Image'
+                }
+            );
+
+            i++;
+        }
+
+        var i = 1;
+        for(f in filter_picker_selection[0].outputs) {
+            jsp.addEndpoint(outputs,
+                { anchor:[0.5, i * (1.0 / (filter_picker_selection[0].outputs.length + 1)), 1, 0] },
+                {
+                    endpoint: ["Dot", {radius: 5} ],
+                    paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
+                    isSource: true,
+                    scope: 'sensor_msgs/Image',
+                    connector: [ "StateMachine", {curviness: 100} ],
+                    maxConnections:5,
+                    connectorStyle: {
+                        strokeStyle: "#00FF00",
+                        lineWidth: 4
+                    }
+                }
+            );
+
+            i++;
+        }
+    }
+});
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
 
 function init_filtergroup(new_filtergroup) {
@@ -11,7 +61,7 @@ function init_filtergroup(new_filtergroup) {
         tolerance: "pointer",
         scroll: false,
         items: ".filter",
-        cancel: ".sort-disabled,.ep",
+        cancel: ".sort-disabled,.filter-picker",
         connectWith: ".filtergroup-body",
         containment: "#workspace",
         placeholder: "filter-placeholder",
@@ -31,33 +81,8 @@ function init_filtergroup(new_filtergroup) {
 
 function init_filter(new_filter) {
     update_sortable_filters();
-    update_filter_list(new_filter);
 
-    jsp.addEndpoint(new_filter.find(".filter-inputs"),
-        { anchor:[0.5, 0.5, -1, 0] },
-        {
-            endpoint: ["Dot", {radius: 10} ],
-            paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
-            isTarget: true,
-            scope: 'sensor_msgs/Image'
-        }
-    );
-
-    jsp.addEndpoint(new_filter.find(".filter-outputs"),
-        { anchor:[0.5, 0.5, 1, 0] },
-        {
-            endpoint: ["Dot", {radius: 10} ],
-            paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
-            isSource: true,
-            scope: 'sensor_msgs/Image',
-            connector: [ "StateMachine", {curviness: 100} ],
-            maxConnections:5,
-            connectorStyle: {
-                strokeStyle: "#00FF00",
-                lineWidth: 4
-            }
-        }
-    );
+    new_filter.find(".filter-header").append($(filter_picker).clone(true));
 
     new_filter.click(function() {
         if(selected_filter != null) {
@@ -139,15 +164,11 @@ function update_topic_list(topic_selector_id, data) {
     $("#" + topic_selector_id + "-topics option:contains(" + selected_topic[topic_selector_id] + ")").attr('selected', true);
 }
 
-function update_filter_list(filter) {
-    filter.find(".filter-header").append(filter_picker);
-}
-
 jsPlumb.ready(function() {
     var input1 = new WebSocket("ws://localhost:8888/input1/");
     var input2 = new WebSocket("ws://localhost:8888/input2/");
-    var topics = new WebSocket("ws://localhost:8888/topiclist/");
-    var filters = new WebSocket("ws://localhost:8888/filterlist/");
+    var topics = new WebSocket("ws://localhost:8888/topics/");
+    var filters = new WebSocket("ws://localhost:8888/filters/");
 
     draw_image("feed1", "None");
     draw_image("feed2", "None");
@@ -170,12 +191,11 @@ jsPlumb.ready(function() {
     };
 
     filters.onmessage = function(evt) {
-        filter_picker = $("<select></select>").addClass("filter-picker").change(function() {
+        filter_metadata = JSON.parse(evt.data)
+        $(filter_picker).append($("<option></option>").val("None").text("None"));
 
-        });
-
-        $.each(JSON.parse(evt.data), function(filter_name) {
-             $(filter_picker).append($("<option></option>").val(filter_name).text(filter_name));
+        $.each(filter_metadata, function(i, f) {
+             $(filter_picker).append($("<option></option>").val(f.name).text(f.name));
         });
     };
 
@@ -208,7 +228,6 @@ jsPlumb.ready(function() {
         var new_filter = $(filter.toString());
 
         $(this).before(new_filter);
-        update_sortable_filters(new_filter);
         init_filter(new_filter);
     });
 
@@ -216,7 +235,6 @@ jsPlumb.ready(function() {
         var new_filter = $(filter.toString());
 
         $(this).after(new_filter);
-        update_sortable_filters(new_filter);
         init_filter(new_filter);
     });
 

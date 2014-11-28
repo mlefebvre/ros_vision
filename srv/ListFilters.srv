@@ -1,2 +1,2 @@
 ---
-string[] filters
+FilterList filter_list

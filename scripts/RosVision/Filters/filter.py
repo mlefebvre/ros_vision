@@ -74,8 +74,5 @@ class Filter:
         name = self._format_io_name(name)
         return name
 
-    def get_descriptor(self):
-        return self.descriptor
-
 
 

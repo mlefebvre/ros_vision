@@ -58,7 +58,6 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    CreateFilter.srv
-   GetFilterInfo.srv
    ListFilters.srv
  )
 
