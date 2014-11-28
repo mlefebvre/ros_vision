@@ -8,7 +8,7 @@ import yaml
 from Master.filter_chain_node_wrapper import FilterChainNodeWrapper
 from Master.scheduler import Scheduler
 
-rospy.init_node('master_node')
+rospy.init_node('vision_master')
 
 
 def load_yaml(file_name):
@@ -26,7 +26,7 @@ def create_filter_chain_group(name, params):
 
 nodes = {}
 
-config_file = rospy.get_param("~config", default="configs/test_vert_orange.yaml")#default.yaml")
+config_file = rospy.get_param("~config", default="configs/test_vert_orange_slow.yaml")#default.yaml")
 config = load_yaml(config_file)
 for name, params in config.items():
     create_filter_chain_group(name, params)

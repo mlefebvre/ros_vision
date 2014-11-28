@@ -15,6 +15,7 @@ def update_filter_topic():
 
     filter_topic.publish(msg)
 
+
 def create_filter_message(f):
         descriptor = f.get_descriptor()
 
@@ -50,6 +51,7 @@ def create_filter_message(f):
 
         return filter
 
+
 def create_filter(req):
     params = {}
     prefix = "%s/%s/" % (rospy.get_name(), req.name)
@@ -62,11 +64,13 @@ def create_filter(req):
 
     return ros_vision.srv.CreateFilterResponse()
 
+
 def get_filter_info(req):
     return create_filter_message(FilterFactory.create_filter("", req.type))
 
+
 def list_filters(req):
-    res = ros_vision.srv.ListFiltersResponse();
+    res = ros_vision.srv.ListFiltersResponse()
     res.filters = FilterFactory.list_filters()
 
     return res
@@ -79,9 +83,17 @@ create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFil
 get_filter_info_service = rospy.Service('~get_filter_info', ros_vision.srv.GetFilterInfo, get_filter_info)
 list_filters_service = rospy.Service('~list_filters', ros_vision.srv.ListFilters, list_filters)
 filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size=1, latch=True)
-rate = rospy.Rate(20)
+max_rate = rospy.Rate(30)
+io_manager = IOManager()
+io_manager.connect_scheduler()
+last_loop = 0
 
 while not rospy.is_shutdown():
-    fc.execute()
-    rate.sleep()
+    while not io_manager.received_signal_since(last_loop) and not rospy.is_shutdown():
+        rospy.sleep(1.0/1000)
+
+    if not rospy.is_shutdown():
+        last_loop = io_manager.get_last_signal()
+        fc.execute()
+        max_rate.sleep()
 

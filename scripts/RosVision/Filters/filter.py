@@ -65,8 +65,8 @@ class Filter:
     def set_output(self, name, value):
         self._io_manager.update_value(self.get_io_name(name), value)
 
-    def get_input(self, name):
-        return self._io_manager.get_value(self.get_io_name(name))
+    def get_input(self, name, wait=True):
+        return self._io_manager.get_value(self.get_io_name(name), wait)
 
     def get_io_name(self, name):
         if name in self._params:
