@@ -23,21 +23,22 @@ class GroupWatcher(object):
                 if self.on_loop_complete is not None:
                     self.loop_count = 0
                     self.on_loop_complete(self)
+
     from threading import  Lock
     lock = Lock()
 
     def _on_output_message(self, source):
         self.lock.acquire()
-        print "=======================+", source, len(self.input_topic_watchers), sum([1 for t in self.input_topic_watchers if t.has_new_message()])
-        if len(self.input_topic_watchers) == sum([1 for t in self.input_topic_watchers if t.has_new_message()]):
-            for t in self.input_topic_watchers:
+        if len(self.output_topic_watchers) == sum([1 for t in self.output_topic_watchers if t.has_new_message()]):
+            for t in self.output_topic_watchers:
                 t.reset_new_message()
             self.loop_count += 1
             if self.on_loop_complete is not None:
+                while len(self.input_topic_watchers) != sum([1 for t in self.input_topic_watchers if t.has_new_message()]):
+                    rospy.sleep(1.0/1000)
+                for t in self.input_topic_watchers:
+                    t.reset_new_message()
                 self.on_loop_complete(self)
-        else:
-            for t in self.input_topic_watchers:
-                print t.has_new_message()
         self.lock.release()
 
     def stop(self):

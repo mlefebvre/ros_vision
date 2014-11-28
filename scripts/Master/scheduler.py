@@ -50,6 +50,10 @@ class Scheduler:
         self.update = True
         self.graph_lock.release()
 
+        # import matplotlib.pyplot as plt
+        # nx.draw_graphviz(graph)
+        # plt.show()
+
     def filter_update_callback(self, msg, fc_node_name):
         self.groups[fc_node_name] = msg
         for f in msg.filters:
@@ -88,10 +92,12 @@ class Scheduler:
 
     def _on_loop_complete(self, source):
         signal = StartSignal()
+        times = []
         for i in source.input_topic_watchers:
-            signal.input_name.append(i.get_topic_name())
-            signal.input_time.append(rospy.Time.from_sec(i.get_last_time()))
-        print "LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOPPPPPPPPPPPPP"
+            signal.group_names.append("/%s" % i.get_topic_name().split("/")[1])
+            times.append(rospy.Time.from_sec(i.get_last_time()))
+
+        signal.input_time = max(times)
         self.signal_topic.publish(signal)
 
     def run(self):

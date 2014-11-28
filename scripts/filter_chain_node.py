@@ -90,7 +90,7 @@ list_filters_service = rospy.Service('~list_filters', ros_vision.srv.ListFilters
 filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size=1, latch=True)
 max_rate = rospy.Rate(30)
 io_manager = IOManager()
-io_manager.connect_scheduler()
+io_manager.run()
 last_loop = 0
 
 while not rospy.is_shutdown():

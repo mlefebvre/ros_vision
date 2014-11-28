@@ -8,7 +8,6 @@ class TopicWatcher:
         self.topic_type = roslib.message.get_message_class(topic_type)
         self.on_message = on_message
         self.last_time = -1
-        print "wutwut"
         self.new_message = False
         self.listener = rospy.Subscriber(self.topic_name, self.topic_type, self._topic_callback)
 
@@ -20,7 +19,6 @@ class TopicWatcher:
 
         self.new_message = True
 
-        print "YOLO", self.topic_name, self.new_message
         if self.on_message is not None:
             self.on_message(self)
 
@@ -28,7 +26,6 @@ class TopicWatcher:
         return self.new_message
 
     def reset_new_message(self):
-        print "wut"
         self.new_message = False
 
     def get_topic_name(self):

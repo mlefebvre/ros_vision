@@ -1,2 +1,2 @@
-string[] input_name
-time[] input_time
+string[] group_names
+time input_time

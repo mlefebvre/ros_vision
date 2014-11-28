@@ -28,9 +28,7 @@ class FilterChain:
         pass
 
     def execute(self):
-        import rospy
         for f in self._filter_list:
-            print "Exec %s %s" % (rospy.get_name(), f.name)
             f.execute()
 
     def get_filters(self):
