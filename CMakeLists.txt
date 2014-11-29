@@ -47,6 +47,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    Filter.msg
+   FilterProperties.msg
    FilterList.msg
    IODescriptor.msg
    Parameter.msg
@@ -58,7 +59,11 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    CreateFilter.srv
+   CreateFilterGroup.srv
    ListFilters.srv
+   ListFilterChains.srv
+   LoadFilterChain.srv
+   SaveFilterChain.srv
  )
 
 ## Generate actions in the 'action' folder

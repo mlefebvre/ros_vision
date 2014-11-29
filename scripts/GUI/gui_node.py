@@ -8,7 +8,7 @@ import tornado.websocket
 import rospy
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
-from ros_vision.srv import ListFilters
+import ros_vision.srv
 
 from cv_bridge import CvBridge
 import cv2
@@ -27,6 +27,8 @@ class RosCvm_Gui(tornado.web.Application):
             (r"/input([0-9]+)/", InputsHandler),
             (r"/topics/", TopicsHandler),
             (r"/filters/", FiltersHandler),
+            (r"/load/", LoadHandler),
+            (r"/save/", SaveHandler),
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -78,10 +80,27 @@ class TopicsHandler(tornado.websocket.WebSocketHandler):
 
 class FiltersHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        rospy.wait_for_service('/filter_chain_node/list_filters')
-        list_filters = rospy.ServiceProxy('/filter_chain_node/list_filters', ListFilters)
+        rospy.wait_for_service('/vision_master/list_filters')
+        list_filters = rospy.ServiceProxy('/filter_chain_node/list_filters', ros_vision.srv.ListFilters)
         self.write_message(json.encode(list_filters().filter_list.filters, unpicklable=False))
 
+class LoadHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        rospy.wait_for_service('/vision_master/list_filterchains')
+        list_filterchains = rospy.ServiceProxy('/vision_master/list_filterchains', ros_vision.srv.ListFilterChains)
+        self.write_message(json.encode(list_filterchains().filterchains, unpicklable=False))
+
+    def on_message(self, message):
+        req = ros_vision.srv.LoadFilterChainRequest()
+        req.name = message.encode('ascii','ignore')
+
+        rospy.wait_for_service('/vision_master/load_filterchain')
+        load_filterchain = rospy.ServiceProxy('/vision_master/load_filterchain', ros_vision.srv.LoadFilterChain)
+        load_filterchain(req)
+
+class SaveHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        pass
 
 if __name__ == "__main__":
     rospy.init_node('roscvm_gui')

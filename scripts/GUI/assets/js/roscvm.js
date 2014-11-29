@@ -12,46 +12,49 @@ var filter_picker = $("<select></select>").addClass("filter-picker").change(func
     jsp.removeAllEndpoints(inputs);
     jsp.removeAllEndpoints(outputs);
 
-    if(filter_picker_selection != "None") {
-        filter_picker_selection = filter_metadata.filter(function(f) {
-            return f.name == filter_picker_selection;
-        });
+    filter_picker_selection = filter_metadata.filter(function(f) {
+        return f.name == filter_picker_selection;
+    });
 
-        var i = 1;
-        for(f in filter_picker_selection[0].inputs) {
-            jsp.addEndpoint(inputs,
-                { anchor:[0.5, i * (1.0 / (filter_picker_selection[0].inputs.length + 1)), -1, 0] },
-                {
-                    endpoint: ["Dot", {radius: 5} ],
-                    paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
-                    isTarget: true,
-                    scope: 'sensor_msgs/Image'
-                }
-            );
+    for(i in filter_picker_selection[0].inputs) {
+        jsp.addEndpoint(inputs,
+            { anchor:[0.5, (parseInt(i) + 1) * (1.0 / (filter_picker_selection[0].inputs.length + 1)), -1, 0] },
+            {
+                endpoint: ["Dot", {radius: 5} ],
+                cssClass: "input",
+                hoverClass: "input-hover",
+                paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
+                isTarget: true,
+                scope: filter_picker_selection[0].inputs[i].type,
+                overlays:[
+                    [ "Label", { location: [0, -1.2], label: filter_picker_selection[0].inputs[i].type, cssClass: "input-label" } ]
+                ]
+            }
+        );
+    }
 
-            i++;
-        }
-
-        var i = 1;
-        for(f in filter_picker_selection[0].outputs) {
-            jsp.addEndpoint(outputs,
-                { anchor:[0.5, i * (1.0 / (filter_picker_selection[0].outputs.length + 1)), 1, 0] },
-                {
-                    endpoint: ["Dot", {radius: 5} ],
-                    paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
-                    isSource: true,
-                    scope: 'sensor_msgs/Image',
-                    connector: [ "StateMachine", {curviness: 100} ],
-                    maxConnections:5,
-                    connectorStyle: {
-                        strokeStyle: "#00FF00",
-                        lineWidth: 4
-                    }
-                }
-            );
-
-            i++;
-        }
+    for(i in filter_picker_selection[0].outputs) {
+        jsp.addEndpoint(outputs,
+            { anchor:[0.5, (parseInt(i) + 1) * (1.0 / (filter_picker_selection[0].outputs.length + 1)), 1, 0] },
+            {
+                endpoint: ["Dot", {radius: 5} ],
+                cssClass: "output",
+                hoverClass: "output-hover",
+                paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
+                isSource: true,
+                scope: filter_picker_selection[0].outputs[i].type,
+                maxConnections: -1,
+                connector: [ "Bezier" ],
+                connectorStyle: {
+                    gradient: { stops: [[0, "#00F"], [0.5, '#09098e'], [1, "#00F"]] },
+                    strokeStyle: "#00F",
+                    lineWidth: 5
+                },
+                overlays:[
+                    [ "Label", { location: [0, -1.2], label: filter_picker_selection[0].outputs[i].type, cssClass: "output-label" } ]
+                ]
+            }
+        );
     }
 });
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
@@ -169,6 +172,9 @@ jsPlumb.ready(function() {
     var input2 = new WebSocket("ws://localhost:8888/input2/");
     var topics = new WebSocket("ws://localhost:8888/topics/");
     var filters = new WebSocket("ws://localhost:8888/filters/");
+    var load = new WebSocket("ws://localhost:8888/load/");
+    //var save = new WebSocket("ws://localhost:8888/save/");
+
 
     draw_image("feed1", "None");
     draw_image("feed2", "None");
@@ -192,13 +198,43 @@ jsPlumb.ready(function() {
 
     filters.onmessage = function(evt) {
         filter_metadata = JSON.parse(evt.data)
-        $(filter_picker).append($("<option></option>").val("None").text("None"));
+        $(filter_picker).append($("<option selected disabled>Pick a filter type...</option>"));
 
         $.each(filter_metadata, function(i, f) {
              $(filter_picker).append($("<option></option>").val(f.name).text(f.name));
         });
     };
 
+    load.onmessage = function(evt) {
+        $("#load-filterchain").prop('disabled', true);
+        $("#filterchain-picker").empty();
+        $("#filterchain-picker").append($("<option selected disabled>Pick a filter chain...</option>"));
+
+        $("#filterchain-picker").change(function() {
+            $("#load-filterchain").prop('disabled', false);
+        });
+
+        $.each(JSON.parse(evt.data), function(i, fc) {
+             $("#filterchain-picker").append($("<option></option>").val(fc).text(fc));
+        });
+    };
+
+    $("#load-filterchain").click(function () {
+        $( "#load-dialog" ).dialog({
+            resizable: false,
+            height: 220,
+            modal: true,
+            buttons: {
+                "Load Filter Chain": function() {
+                    $( this ).dialog( "close" );
+                    load.send($("#filterchain-picker").val());
+                },
+                Cancel: function() {
+                    $( this ).dialog( "close" );
+                }
+            }
+        });
+    });
 
     $("#feed1-topics").change(function () {
         selected_topic["feed1"] = $("option:selected", this).text();

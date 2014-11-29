@@ -21,20 +21,3 @@ class FilterFactory:
                                 return c(name, params)
                         except:
                             pass
-
-    @staticmethod
-    def list_descriptors():
-        descriptors_list = []
-        pkgpath = os.path.dirname(os.path.realpath(__file__))
-        for _, module, ispkg in pkgutil.iter_modules([pkgpath]):
-            if ispkg:
-                i = importlib.import_module("RosVision.Filters.%s.filter" % module)
-                if hasattr(i, "__dict__"):
-                    for n, c in i.__dict__.items():
-                        try:
-                            if issubclass(c, Filter) and n is not "Filter":
-                                descriptors_list.append(c.descriptor)
-                        except:
-                            pass
-
-        return descriptors_list
