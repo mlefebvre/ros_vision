@@ -1,54 +1,50 @@
-!!omap
-- main:
-  !!omap
-  - blur:
+main:
+  blur:
     type: Blur
     input: /capra_camera/image
     ksize: 5
-  - hsv:
+  hsv:
     type: BGR2HSV
     input: blur/output
-  - or:
+  or:
     type: BitwiseOr
     input1: /green/dilate/output
     input2: /orange/dilate/output
-  - mask:
+  mask:
     type: Mask
     input: /capra_camera/image
     mask: or/output
-- green:
-  !!omap
-  - thresh:
+green:
+  thresh:
     type: HSVThreshold
     input: /main/hsv/output
     min_hue: 50
     max_hue: 110
-  - erode:
+  erode:
     type: Erode
     input: thresh/output
     element_size: 5
     element_type: cross
-  - dilate:
+  dilate:
     type: Dilate
     order: 5
     input: erode/output
     element_size: 10
     iterations: 5
-- orange:
-  !!omap
-  - thresh:
+orange:
+  thresh:
     type: HSVThreshold
     input: /main/hsv/output
     min_hue: 0
     max_hue: 20
     min_saturation: 153
     min_value: 220
-  - erode:
+  erode:
     type: Erode
     input: thresh/output
     element_size: 5
     element_type: cross
-  - dilate:
+  dilate:
     type: Dilate
     input: erode/output
     element_size: 10

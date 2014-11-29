@@ -81,7 +81,7 @@ class TopicsHandler(tornado.websocket.WebSocketHandler):
 class FiltersHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         rospy.wait_for_service('/vision_master/list_filters')
-        list_filters = rospy.ServiceProxy('/filter_chain_node/list_filters', ros_vision.srv.ListFilters)
+        list_filters = rospy.ServiceProxy('/vision_master/list_filters', ros_vision.srv.ListFilters)
         self.write_message(json.encode(list_filters().filter_list.filters, unpicklable=False))
 
 class LoadHandler(tornado.websocket.WebSocketHandler):

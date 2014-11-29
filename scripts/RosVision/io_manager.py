@@ -1,5 +1,8 @@
 import rospy
 import ros_vision.msg
+import os
+import pkgutil
+import importlib
 from threading import Lock
 
 
@@ -139,6 +142,7 @@ class IOManager(Singleton):
         def create_filter_message_from_descriptor(d):
             filter = ros_vision.msg.Filter()
             filter.name = d.get_name()
+            filter.type = d.get_name()
             filter.description = d.description
 
             for i in d.get_inputs():
