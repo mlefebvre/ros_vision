@@ -26,6 +26,7 @@ class DilateFilter(Filter):
             element_shape = self.element_shapes[self.get_param("element_shape")]
             element_size = self.get_param("element_size")
             element = cv2.getStructuringElement(element_shape, (element_size, element_size))
+            # ITERATIONS
             im2 = Image(cv2.dilate(im.get_image(), element))
             im.copy_header(im2)
             self.set_output("output", im2)

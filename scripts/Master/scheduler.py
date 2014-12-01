@@ -16,7 +16,7 @@ class Scheduler:
         self.output_topics = []
         self.group_watchers = []
         self.graph_lock = Lock()
-        self.signal_topic = rospy.Publisher('/vision_master/scheduler/signal', StartSignal, queue_size=10, latch=True)
+        self.signal_topic = rospy.Publisher('/vision_master/scheduler/signal', StartSignal, queue_size=1, latch=True)
 
     def update_graph(self):
         self.graph_lock.acquire()
@@ -93,11 +93,16 @@ class Scheduler:
     def _on_loop_complete(self, source):
         signal = StartSignal()
         times = []
-        for i in source.input_topic_watchers:
-            signal.group_names.append("/%s" % i.get_topic_name().split("/")[1])
-            times.append(rospy.Time.from_sec(i.get_last_time()))
 
+        print repr(rospy.get_time()), "SEND SIGNAL"
+
+        for n in source.nodes:
+            signal.group_names.append(n)
+
+        for i in source.input_topic_watchers:
+            times.append(rospy.Time.from_sec(i.get_last_time()))
         signal.input_time = max(times)
+
         self.signal_topic.publish(signal)
 
     def run(self):
@@ -110,6 +115,13 @@ class Scheduler:
                 self.graph_lock.acquire()
                 self.input_topics = self._find_input_topics()
                 self.output_topics = self._find_output_topics()
+                group_nodes = []
+                for i, graph in enumerate(self.graphs):
+                    g = set()
+                    for n in graph.nodes():
+                        name = "/%s" % n.split("/")[1]
+                        g.add(name)
+                    group_nodes.append(g)
                 self.graph_lock.release()
 
                 while len(self.group_watchers) > 0:
@@ -118,6 +130,6 @@ class Scheduler:
 
                 self.group_watchers = []
                 for i in range(len(self.input_topics)):
-                    self.group_watchers.append(GroupWatcher(self.input_topics[i], self.output_topics[i], self._on_loop_complete))
+                    self.group_watchers.append(GroupWatcher(self.input_topics[i], self.output_topics[i], group_nodes[i], self._on_loop_complete))
 
             rospy.sleep(1)

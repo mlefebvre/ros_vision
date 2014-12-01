@@ -26,7 +26,7 @@ def create_filter_chain_group(name, params):
 
 nodes = {}
 
-config_file = rospy.get_param("~config", default="configs/test_vert_orange.yaml")
+config_file = rospy.get_param("~config", default="configs/test_vert_orange_slow.yaml")
 config = load_yaml(config_file)
 for name, params in config.items():
     create_filter_chain_group(name, params)

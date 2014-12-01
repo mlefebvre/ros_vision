@@ -3,10 +3,11 @@ from topic_watcher import TopicWatcher
 
 
 class GroupWatcher(object):
-    def __init__(self, input_topics, output_topics, on_loop_complete=None):
+    def __init__(self, input_topics, output_topics, nodes, on_loop_complete=None):
         self.input_topic_watchers = []
         self.output_topic_watchers = []
         self.on_loop_complete = on_loop_complete
+        self.nodes = nodes
         self.loop_count = -1
 
         for topic_name, topic_type in input_topics:
@@ -24,7 +25,7 @@ class GroupWatcher(object):
                     self.loop_count = 0
                     self.on_loop_complete(self)
 
-    from threading import  Lock
+    from threading import Lock
     lock = Lock()
 
     def _on_output_message(self, source):

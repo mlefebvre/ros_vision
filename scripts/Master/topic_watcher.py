@@ -20,6 +20,7 @@ class TopicWatcher:
         self.new_message = True
 
         if self.on_message is not None:
+            print repr(rospy.get_time()), "RECV"
             self.on_message(self)
 
     def has_new_message(self):
