@@ -55,8 +55,11 @@ class TopicWatcher:
     def get_last_time(self):
         return self.last_time
 
+    def has_messages(self):
+        return len(self.last_messages) > 0
+
     def get_nearest_message(self, time):
-        t = min(self.last_times, key=lambda x:abs(x-time))
+        t = min(self.last_times, key=lambda x: abs(x-time))
         return self.last_messages[t]
 
     def reset_rate(self):

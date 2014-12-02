@@ -44,12 +44,12 @@ count = 0
 
 while not rospy.is_shutdown():
     last = rospy.get_time()
-    io_manager.wait_for_signal()
+    #io_manager.wait_for_signal()
     fc.execute()
     if rospy.get_name() == "/main":
         diff = rospy.get_time() - last
         count += 1
         total += diff
-        print "--------------", (total / count) * 1000
-    #max_rate.sleep()
+#        print "--------------", (total / count) * 1000
+    max_rate.sleep()
 

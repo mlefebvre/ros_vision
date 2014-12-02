@@ -43,13 +43,13 @@ class IOManager(Singleton):
     def _signal_callback(self, signal):
         if rospy.get_name() in signal.group_names:
             self._signal_time = signal.input_time.to_sec()
-            print repr(rospy.get_time()), rospy.get_name(), "signal", repr(self._signal_time)
+            #print repr(rospy.get_time()), rospy.get_name(), "signal", repr(self._signal_time)
             self._signal_lock.set()
 
     def wait_for_signal(self):
-        print repr(rospy.get_time()), rospy.get_name(), "Wait_signal"
+        #print repr(rospy.get_time()), rospy.get_name(), "Wait_signal"
         self._signal_lock.wait(timeout=1.0)
-        print repr(rospy.get_time()), rospy.get_name(), "Ok_signal"
+        #print repr(rospy.get_time()), rospy.get_name(), "Ok_signal"
         self._signal_lock.clear()
 
     def get_last_signal(self):
@@ -80,7 +80,7 @@ class IOManager(Singleton):
             del self._subscribers[name]
 
     def _add_value(self, name, value, time):
-        print repr(rospy.get_time()), rospy.get_name(), "update", name, repr(time)
+        #print repr(rospy.get_time()), rospy.get_name(), "update", name, repr(time)
         if not name in self._last_values:
             self._last_values_locks[name] = Lock()
             self._last_values[name] = {}
@@ -135,7 +135,7 @@ class IOManager(Singleton):
                         else:
                             max_wait = 0.05
                             max_wait_time = rospy.get_time() + max_wait
-                            print repr(rospy.get_time()), rospy.get_name(), "wait", name, repr(self._signal_time)
+                            #print repr(rospy.get_time()), rospy.get_name(), "wait", name, repr(self._signal_time)
                             while rospy.get_time() < max_wait_time:
                                 rospy.sleep(1.0/1000)
                                 max_time2 = max(d.keys())

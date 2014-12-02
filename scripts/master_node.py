@@ -6,12 +6,11 @@ import rospkg
 import os
 import yaml
 import collections
-from Master.filter_chain_node_wrapper import FilterChainNodeWrapper
-from Master.scheduler import Scheduler
 from RosVision.message_factory import MessageFactory
 from RosVision.Filters.filter import Filter
 import ros_vision.srv
 import ros_vision.msg
+from Master.Workspace.workspace import Workspace
 
 rospy.init_node('vision_master')
 
@@ -25,29 +24,18 @@ def load_filterchain(req):
     rospack = rospkg.RosPack()
     name = os.path.join(rospack.get_path("ros_vision"), "configs/" + req.name + ".yaml")
 
-    for name in filtergroups:
-        filtergroups[name].kill()
-        del filtergroups[name]
-
     if not os.path.exists(name):
         name = req.name + ".yaml"
 
+    workspace.reset()
+
     with open(name, 'r') as f:
         for filtergroup_name, filters in yaml.load(f).items():
-            f = FilterChainNodeWrapper(filtergroup_name, filters)
-            filtergroups[filtergroup_name] = f
+            workspace.add_group(filtergroup_name, filters)
 
-        scheduler = Scheduler()
+        filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names()))
 
-        for name in filtergroups.keys():
-            scheduler.add_filter_chain_group(name)
-
-        filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(filtergroups))
-
-        # FIXME: This is making the client hang forever...
-        #scheduler.run()
-
-        return ros_vision.srv.LoadFilterChainResponse()
+    return ros_vision.srv.LoadFilterChainResponse()
 
 def list_filterchains(req):
     res = ros_vision.srv.ListFilterChainsResponse()
@@ -64,9 +52,8 @@ def save_filterchain():
     pass
 
 def create_filtergroup(req):
-    f = FilterChainNodeWrapper(req.name)
-    filtergroups[req.name] = f
-    filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(filtergroups))
+    workspace.add_group(req.name)
+    filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names()))
 
     return ros_vision.srv.CreateFilterGroupResponse()
 
@@ -80,9 +67,14 @@ def list_filter_types(req):
     return res
 
 def list_filtergroups(req):
-    return MessageFactory.create_filtergrouplist_message_from_string_list(filtergroups)
+    return MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names())
 
-filtergroups = {}
+def on_workspace_update():
+    print workspace.input_topics
+    print workspace.output_topics
+    print workspace.filter_chains[0].nodes(data=True)
+
+workspace = Workspace()
 
 list_filterchains_service = rospy.Service('~list_filterchains', ros_vision.srv.ListFilterChains, list_filterchains)
 load_filterchain_service = rospy.Service('~load_filterchain', ros_vision.srv.LoadFilterChain, load_filterchain)
@@ -94,6 +86,17 @@ filtergroup_list_publisher = rospy.Publisher('~filtergroups', ros_vision.msg.Fil
 
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
+
+
+req = ros_vision.srv.LoadFilterChainRequest()
+req.name = 'test_vert_orange'
+load_filterchain(req)
+
+while not workspace.is_ready() and not rospy.is_shutdown():
+    rospy.sleep(0.1)
+
+workspace.add_update_listener(on_workspace_update)
+on_workspace_update()
 
 while not rospy.is_shutdown():
     rospy.Rate(30).sleep()

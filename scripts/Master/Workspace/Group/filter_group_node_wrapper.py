@@ -4,7 +4,7 @@ import rospy
 from ros_vision.srv import CreateFilter
 
 
-class FilterChainNodeWrapper:
+class FilterGroupNodeWrapper:
     def __init__(self, name, filters={}):
         self.name = name
         self.node = Node("ros_vision", "filter_chain_node.py", name)
@@ -21,10 +21,11 @@ class FilterChainNodeWrapper:
             if 'type' in filters[filter_name].keys():
                 filter_type = filters[filter_name]['type']
                 del filters[filter_name]['type']
-                self.create_filter(filter_name, filter_type, i)
 
                 for parameter_name in filters[filter_name].keys():
                     rosparam.set_param('/%s/%s/%s' % (name, filter_name, parameter_name), str(filters[filter_name][parameter_name]))
+
+                self.create_filter(filter_name, filter_type, i)
 
     def reset_params(self):
         for p in rosparam.list_params(self.name):
