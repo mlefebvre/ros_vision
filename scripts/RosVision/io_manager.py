@@ -1,8 +1,5 @@
 import rospy
 import ros_vision.msg
-import os
-import pkgutil
-import importlib
 from threading import Lock
 
 
@@ -137,54 +134,6 @@ class IOManager(Singleton):
                 self._last_values_locks[name].release()
                 return val
         return None
-
-        @staticmethod
-        def create_filter_message_from_descriptor(d):
-            filter = ros_vision.msg.Filter()
-            filter.name = d.get_name()
-            filter.type = d.get_name()
-            filter.description = d.description
-
-            for i in d.get_inputs():
-                d = ros_vision.msg.IODescriptor()
-                name = i.get_name()
-                d.name = name
-                d.type = str(i.get_io_type().get_ros_type()._type)
-                d.topic = IOManager().format_topic_name(filter.name + "/" + name)
-                filter.inputs.append(d)
-
-            for o in d.get_outputs():
-                d = ros_vision.msg.IODescriptor()
-                name = o.get_name()
-                d.name = name
-                d.type = str(o.get_io_type().get_ros_type()._type)
-                d.topic = IOManager().format_topic_name(filter.name + "/" + name)
-                filter.outputs.append(d)
-
-            for p in d.get_parameters():
-                parameter = ros_vision.msg.Parameter()
-                parameter.name = p.get_name()
-                parameter.description = p.get_description()
-                parameter.type = p.get_type().__name__
-                parameter.default = str(p.get_default_value())
-                parameter.min = str(p.get_min_value())
-                parameter.max = str(p.get_max_value())
-                filter.parameters.append(parameter)
-
-            return filter
-
-        @staticmethod
-        def create_filter_message_from_filter(f):
-            filter = IOManager.create_filter_message_from_descriptor(f.descriptor)
-            filter.name = f.name
-
-            for idx, i in enumerate(f.descriptor.get_inputs()):
-                filter.inputs[idx].topic = IOManager().format_topic_name(f.get_io_name(filter.inputs[idx].name))
-
-            for idx, o in enumerate(f.descriptor.get_outputs()):
-                filter.outputs[idx].topic = IOManager().format_topic_name(f.get_io_name(filter.outputs[idx].name))
-
-            return filter
 
     # # Singleton
     # def __new__(cls, *args, **kwargs):

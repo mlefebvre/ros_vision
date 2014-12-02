@@ -1,4 +1,7 @@
 import abc
+import importlib
+import os
+import pkgutil
 from ..io_manager import IOManager
 
 class Filter:
@@ -73,6 +76,24 @@ class Filter:
             name = self._params[name]
         name = self._format_io_name(name)
         return name
+
+    @staticmethod
+    def list_descriptors():
+        descriptors = {}
+        pkgpath = os.path.dirname(os.path.realpath(__file__))
+
+        for _, module, ispkg in pkgutil.iter_modules([pkgpath]):
+            if ispkg:
+                i = importlib.import_module("RosVision.Filters.%s.filter" % module)
+                if hasattr(i, "__dict__"):
+                    for n, c in i.__dict__.items():
+                        try:
+                            if issubclass(c, Filter) and n is not "Filter":
+                                descriptors[n] = c.descriptor
+                        except:
+                            pass
+
+        return descriptors
 
 
 

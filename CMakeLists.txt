@@ -47,8 +47,9 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    Filter.msg
-   FilterProperties.msg
    FilterList.msg
+   FilterGroup.msg
+   FilterGroupList.msg
    IODescriptor.msg
    Parameter.msg
    PolygonListStamped.msg
@@ -59,8 +60,11 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    CreateFilter.srv
+   DeleteFilter.srv
    CreateFilterGroup.srv
-   ListFilters.srv
+   DeleteFilterGroup.srv
+   ListFilterTypes.srv
+   ListFilterGroups.srv
    ListFilterChains.srv
    LoadFilterChain.srv
    SaveFilterChain.srv

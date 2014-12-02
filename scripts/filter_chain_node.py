@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 from samba import descriptor
 
-import roslib; roslib.load_manifest('ros_vision')
+import roslib;
+
+roslib.load_manifest('ros_vision')
 import rospy
-from RosVision.filter_chain import FilterChain
 import ros_vision.srv
 import ros_vision.msg
+from RosVision.filter_chain import FilterChain
 from RosVision.io_manager import IOManager
+from RosVision.message_factory import MessageFactory
 
 def update_filter_topic():
     msg = ros_vision.msg.FilterList()
     for f in fc.get_filters():
-        msg.filters.append(IOManager.create_filter_message_from_filter(f))
+        msg.filters.append(MessageFactory.create_filter_message_from_filter(f))
 
     filter_topic.publish(msg)
 

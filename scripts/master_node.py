@@ -7,11 +7,9 @@ import rospkg
 import os
 import yaml
 import collections
-import importlib
-import pkgutil
 from Master.filter_chain_node_wrapper import FilterChainNodeWrapper
 from Master.scheduler import Scheduler
-from RosVision.io_manager import IOManager
+from RosVision.message_factory import MessageFactory
 from RosVision.Filters.filter import Filter
 import ros_vision.srv
 import ros_vision.msg
@@ -24,45 +22,33 @@ def dict_representer(dumper, data):
 def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
 
-def list_descriptors():
-    descriptors = {}
-    pkgpath = os.path.dirname(os.path.realpath(__file__))
-
-    for _, module, ispkg in pkgutil.iter_modules([pkgpath]):
-        if ispkg:
-            i = importlib.import_module("RosVision.Filters.%s.filter" % module)
-            if hasattr(i, "__dict__"):
-                for n, c in i.__dict__.items():
-                    try:
-                        if issubclass(c, Filter) and n is not "Filter":
-                            descriptors[n] = c.descriptor
-                    except:
-                        pass
-
-    return descriptors
-
 def load_filterchain(req):
     rospack = rospkg.RosPack()
     name = os.path.join(rospack.get_path("ros_vision"), "configs/" + req.name + ".yaml")
 
-    for name in nodes:
-        nodes[name].kill()
-        del nodes[name]
+    for name in filtergroups:
+        filtergroups[name].kill()
+        del filtergroups[name]
 
     if not os.path.exists(name):
         name = req.name + ".yaml"
 
     with open(name, 'r') as f:
         for filtergroup_name, filters in yaml.load(f).items():
-            f = FilterChainNodeWrapper(req.name, filters)
-            nodes[req.name] = f
+            f = FilterChainNodeWrapper(filtergroup_name, filters)
+            filtergroups[filtergroup_name] = f
 
         scheduler = Scheduler()
 
-        for name in nodes.keys():
+        for name in filtergroups.keys():
             scheduler.add_filter_chain_group(name)
 
-        scheduler.run()
+        filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(filtergroups))
+
+        # FIXME: This is making the client hang forever...
+        #scheduler.run()
+
+        return ros_vision.srv.LoadFilterChainResponse()
 
 def list_filterchains(req):
     res = ros_vision.srv.ListFilterChainsResponse()
@@ -80,23 +66,32 @@ def save_filterchain():
 
 def create_filtergroup(req):
     f = FilterChainNodeWrapper(req.name)
-    nodes[req.name] = f
+    filtergroups[req.name] = f
+    filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(filtergroups))
 
     return ros_vision.srv.CreateFilterGroupResponse()
 
-def list_filters(req):
-    res = ros_vision.srv.ListFiltersResponse()
+def list_filter_types(req):
+    res = ros_vision.srv.ListFilterTypesResponse()
+    descriptors = Filter.list_descriptors()
 
-    for name, descriptor in list_descriptors():
-        res.filter_list.filters.append(IOManager.create_filter_message_from_descriptor(descriptor))
+    for filter_name in descriptors.keys():
+        res.filter_list.filters.append(MessageFactory.create_filter_message_from_descriptor(descriptors[filter_name]))
 
     return res
 
-nodes = {}
+def list_filtergroups(req):
+    return MessageFactory.create_filtergrouplist_message_from_string_list(filtergroups)
+
+filtergroups = {}
+
 list_filterchains_service = rospy.Service('~list_filterchains', ros_vision.srv.ListFilterChains, list_filterchains)
 load_filterchain_service = rospy.Service('~load_filterchain', ros_vision.srv.LoadFilterChain, load_filterchain)
 create_filtergroup_service = rospy.Service('~create_filtergroup', ros_vision.srv.CreateFilterGroup, create_filtergroup)
-list_filters_service = rospy.Service('~list_filters', ros_vision.srv.ListFilters, list_filters)
+list_filtergroup_service = rospy.Service('~list_filtergroups', ros_vision.srv.ListFilterGroups, list_filtergroups)
+list_filter_types_service = rospy.Service('~list_filter_types', ros_vision.srv.ListFilterTypes, list_filter_types)
+
+filtergroup_list_publisher = rospy.Publisher('~filtergroups', ros_vision.msg.FilterGroupList, queue_size=1, latch=True)
 
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)

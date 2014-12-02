@@ -100,6 +100,10 @@ canvas {
     border: 2px solid #00FFFF;
 }
 
+.filtergroup-title {
+    height: 25px;
+}
+
 .filtergroup-body {
     display: flex;
     flex-direction: row;
@@ -134,7 +138,12 @@ canvas {
 
 .filter-picker {
     height: 25px;
-    width: 100%;
+    width: 50%;
+}
+
+.filter-title {
+    height: 25px;
+    width: 50%;
 }
 
 .filter-body {

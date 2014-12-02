@@ -15,16 +15,16 @@ class FilterChainNodeWrapper:
         self.create_filter = rospy.ServiceProxy(create_filter_srv_name, CreateFilter)
 
         i = 0
-        for filter_name, parameters in filters:
+        for filter_name in filters.keys():
             i += 1
-            filter_type = parameters['type']
-            del parameters['type']
 
-            for parameter_name, parameter_value in parameters:
-                rosparam.set_param('/%s/%s/%s' % (name, filter_name, parameter_name), str(parameter_value))
+            if 'type' in filters[filter_name].keys():
+                filter_type = filters[filter_name]['type']
+                del filters[filter_name]['type']
+                self.create_filter(filter_name, filter_type, i)
 
-            self.create_filter(filter_name, filter_type, i)
-            # TODO: T'es rendu ici
+                for parameter_name in filters[filter_name].keys():
+                    rosparam.set_param('/%s/%s/%s' % (name, filter_name, parameter_name), str(filters[filter_name][parameter_name]))
 
     def reset_params(self):
         for p in rosparam.list_params(self.name):
