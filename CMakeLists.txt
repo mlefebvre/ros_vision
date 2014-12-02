@@ -68,6 +68,8 @@ find_package(catkin REQUIRED COMPONENTS
    ListFilterChains.srv
    LoadFilterChain.srv
    SaveFilterChain.srv
+   AddInput.srv
+   AddOutput.srv
  )
 
 ## Generate actions in the 'action' folder

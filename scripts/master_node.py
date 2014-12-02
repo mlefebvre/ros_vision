@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-import roslib;
+import roslib; roslib.load_manifest('ros_vision')
 
-roslib.load_manifest('ros_vision')
 import rospy
 import rospkg
 import os

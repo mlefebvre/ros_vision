@@ -39,14 +39,17 @@ filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size
 max_rate = rospy.Rate(30)
 io_manager = IOManager()
 io_manager.run()
-last_loop = 0
+total = 0
+count = 0
 
 while not rospy.is_shutdown():
-    while not io_manager.received_signal_since(last_loop) and not rospy.is_shutdown():
-        rospy.sleep(1.0/1000)
-
-    if not rospy.is_shutdown():
-        last_loop = io_manager.get_last_signal()
-        fc.execute()
-        max_rate.sleep()
+    last = rospy.get_time()
+    io_manager.wait_for_signal()
+    fc.execute()
+    if rospy.get_name() == "/main":
+        diff = rospy.get_time() - last
+        count += 1
+        total += diff
+        print "--------------", (total / count) * 1000
+    #max_rate.sleep()
 
