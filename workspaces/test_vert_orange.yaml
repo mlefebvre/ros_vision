@@ -6,14 +6,6 @@ main:
   hsv:
     type: BGR2HSV
     input: blur/output
-  or:
-    type: BitwiseOr
-    input1: /green/dilate/output
-    input2: /orange/dilate/output
-  mask:
-    type: Mask
-    input: /capra_camera/image
-    mask: or/output
 green:
   thresh:
     type: HSVThreshold
@@ -49,3 +41,12 @@ orange:
     input: erode/output
     element_size: 10
     iterations: 5
+main2:
+  or:
+    type: BitwiseOr
+    input1: /green/dilate/output
+    input2: /orange/dilate/output
+  mask:
+    type: Mask
+    input: /capra_camera/image
+    mask: or/output

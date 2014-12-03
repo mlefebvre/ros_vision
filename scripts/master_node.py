@@ -11,6 +11,8 @@ from RosVision.Filters.filter import Filter
 import ros_vision.srv
 import ros_vision.msg
 from Master.Workspace.workspace import Workspace
+from Master.Scheduler.scheduler import Scheduler
+
 
 rospy.init_node('vision_master')
 
@@ -86,8 +88,9 @@ while not workspace.is_ready() and not rospy.is_shutdown():
 workspace.add_update_listener(on_workspace_update)
 on_workspace_update()
 
-while not rospy.is_shutdown():
-    rospy.Rate(30).sleep()
+scheduler = Scheduler(workspace)
+scheduler.run()
+
 
 
 

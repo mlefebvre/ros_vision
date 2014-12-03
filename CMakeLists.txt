@@ -47,8 +47,9 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    Filter.msg
-   FilterGroup.msg
    FilterList.msg
+   FilterGroup.msg
+   FilterGroupNames.msg
    IODescriptor.msg
    Parameter.msg
    PolygonListStamped.msg

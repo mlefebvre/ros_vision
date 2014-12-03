@@ -1,11 +1,10 @@
 import rospy
-import roslib
-import roslib.message
+
 
 class TopicWatcher:
     def __init__(self, topic_name, topic_type, on_message=None):
         self.topic_name = topic_name
-        self.topic_type = roslib.message.get_message_class(topic_type)
+        self.topic_type = topic_type
         self.on_message = on_message
         self.last_time = -1
         self.new_message = False
@@ -13,7 +12,6 @@ class TopicWatcher:
         self.rates = []
         self.last_messages = []
         self.last_times = []
-
 
     def _topic_callback(self, msg):
         if hasattr(msg, "header"):
@@ -60,7 +58,7 @@ class TopicWatcher:
 
     def get_nearest_message(self, time):
         t = min(self.last_times, key=lambda x: abs(x-time))
-        return self.last_messages[t]
+        return self.last_messages[self.last_times.index(t)]
 
     def reset_rate(self):
         self.rates = []

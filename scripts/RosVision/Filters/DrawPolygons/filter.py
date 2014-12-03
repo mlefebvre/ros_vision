@@ -23,8 +23,7 @@ class DrawPolygonsFilter(Filter):
         print "Init %s" % self.name
 
     def execute(self, time=0):
-        im = self.get_input("input")
-        polygons = self.get_input("polygons")
+        im, polygons = self.get_input("input", "polygons")
         if im and polygons:
             im2cv = im.get_image().copy()
             pts = [numpy.array([[[x, y] for x,y,z in p.get_points()]], numpy.int32) for p in polygons.get_polygons()]
