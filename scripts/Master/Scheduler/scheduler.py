@@ -3,7 +3,7 @@ import roslib.message
 import rospy
 from threading import Lock
 
-from scripts.Master.Scheduler.topic_watcher import TopicWatcher
+from topic_watcher import TopicWatcher
 
 
 # Modifier un jour pour supporter plusieurs chaines de filtres

@@ -79,7 +79,7 @@ yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
 req = ros_vision.srv.LoadWorkspaceRequest()
-req.name = 'test_point_cloud'
+req.name = 'demo_lignes_mauves'
 load_workspace(req)
 
 while not workspace.is_ready() and not rospy.is_shutdown():

@@ -1,5 +1,5 @@
 import ros_vision.msg
-from scripts.RosVision.io_manager import IOManager
+from io_manager import IOManager
 
 
 class MessageFactory:
