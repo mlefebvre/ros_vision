@@ -47,29 +47,28 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    Filter.msg
-   FilterList.msg
    FilterGroup.msg
-   FilterGroupList.msg
+   FilterList.msg
    IODescriptor.msg
    Parameter.msg
    PolygonListStamped.msg
    StartSignal.msg
+   Workspace.msg
  )
 
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   CreateFilter.srv
-   DeleteFilter.srv
-   CreateFilterGroup.srv
-   DeleteFilterGroup.srv
-   ListFilterTypes.srv
-   ListFilterGroups.srv
-   ListFilterChains.srv
-   LoadFilterChain.srv
-   SaveFilterChain.srv
    AddInput.srv
    AddOutput.srv
+   CreateFilter.srv
+   CreateFilterGroup.srv
+   DeleteFilter.srv
+   DeleteFilterGroup.srv
+   ListFilterTypes.srv
+   ListWorkspaces.srv
+   LoadWorkspace.srv
+   SaveWorkspace.srv
  )
 
 ## Generate actions in the 'action' folder

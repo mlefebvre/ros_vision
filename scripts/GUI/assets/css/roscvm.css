@@ -84,7 +84,6 @@ canvas {
 .filtergroup-add {
     height: 25px;
     text-align: center;
-    border: 2px solid #0000FF;
 }
 
 .filtergroup {
@@ -92,12 +91,10 @@ canvas {
     flex-direction: column;
     height: 150px;
     margin: 10px 0px 10px 0px;
-    border: 2px solid #d58512;
 }
 
 .filtergroup-header {
     flex: 0 0 25px;
-    border: 2px solid #00FFFF;
 }
 
 .filtergroup-title {
@@ -109,7 +106,6 @@ canvas {
     flex-direction: row;
     flex: 1;
     margin-bottom: 0px;
-    border: 2px solid #00FF00;
 }
 
 .filter-placeholder {
@@ -117,8 +113,6 @@ canvas {
     flex: 1;
     margin: 0px 10px 0px 10px;
     position: relative;
-    background-color: #5bc0de;
-    border: 2px solid #FF0000;
 }
 
 .filter {
@@ -128,44 +122,40 @@ canvas {
     flex: 1;
     margin: 0px 10px 0px 10px;
     position: relative;
-    border: 2px solid #FF0000;
 }
 
 .filter-header {
     flex: 0 0 25px;
-    border: 2px solid darkorchid;
 }
 
 .filter-picker {
-    height: 25px;
-    width: 50%;
+
 }
 
-.filter-title {
-    height: 25px;
-    width: 50%;
+.filter-name {
+
+}
+
+.delete-filter {
+
 }
 
 .filter-body {
     display: flex;
     flex-direction: row;
     flex: 1;
-    border: 2px solid #000000;
 }
 
 .filter-inputs {
     flex: 1;
-    border: 2px solid slategray;
 }
 
 .filter-outputs {
     flex: 1;
-    border: 2px solid slategray;
 }
 
 .filter-add {
     list-style: none;
     flex: 0 0 60px;
     margin-bottom: 0px;
-    border: 2px solid #FFFF00;
 }

@@ -1,10 +1,10 @@
 var jsp = null;
 var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
-var filter = '<div class="filter sort-disabled"><div class="filter-header"><input class="filter-name" /></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
-var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"><input class="filtergroup-name" /></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div><div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
+var filter = '<div class="filter sort-disabled"><div class="filter-header"><div class="input-group"><div class="filter-picker-wrapper input-group-btn"></div><input type="text" class="filter-name form-control"><div class="input-group-btn"><button class="delete-filter btn btn-default glyphicon glyphicon-remove" type="button"></button></div></div></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
+var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"><input type="text" class="filtergroup-name" /></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div><div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
 var filter_metadata = null;
-var filter_picker = $("<select></select>").addClass("filter-picker").change(function() {
+var filter_picker = $("<select></select>").addClass("filter-picker selectpicker form-control").change(function() {
     filter_picker_selection = filter_metadata.filter(function(f) {
         return f.name == filter_picker_selection;
     });
@@ -13,6 +13,10 @@ var filter_picker = $("<select></select>").addClass("filter-picker").change(func
     init_filter_outputs($(this).closest(".filter"), filter_picker_selection[0].outputs);
 });
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
+
+function init_filter_properties(filter_selector) {
+
+}
 
 function init_filtergroup(filtergroup_selector, options) {
 
@@ -51,7 +55,7 @@ function init_filter(filter_selector, options) {
 
     update_sortable_filters();
 
-    filter_selector.find(".filter-header").prepend($(filter_picker).clone(true));
+    filter_selector.find(".filter-header > .input-group > .filter-picker-wrapper").prepend($(filter_picker).clone(true));
     filter_selector.find(".filter-picker").val(type);
     filter_selector.find(".filter-name").val(name);
 
@@ -218,19 +222,19 @@ jsPlumb.ready(function() {
     });
 
     master.onmessage = function(evt) {
-        var filtergroups = JSON.parse(evt.data);
+        var workspace = JSON.parse(evt.data);
 
-        for(filtergroup_name in filtergroups) {
+        for(filter_group_name in workspace.filter_groups) {
             var new_filtergroup = $(filtergroup.toString());
 
             $(".filtergroup-add.top").after(new_filtergroup);
-            init_filtergroup(new_filtergroup, {name: filtergroup_name});
+            init_filtergroup(new_filtergroup, {name: filter_group_name});
 
-            for(filter_name in filtergroups[filtergroup_name]) {
+            for(filter_name in workspace.filter_groups[filter_group_name]) {
                 var new_filter = $(filter.toString());
 
                 new_filtergroup.find(".filter-add.left").after(new_filter);
-                init_filter(new_filter, filtergroups[filtergroup_name][filter_name]);
+                init_filter(new_filter, workspace[filtergroup_name][filter_name]);
             }
         }
     };

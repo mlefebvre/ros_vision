@@ -1,7 +1,2 @@
 string name
-string filters_publisher=/filters
-string delete_filtergroup_service=/delete_filtergroup
-string update_filtergroup_service=/update_filtergroup
-string create_filter_service=/create_filter
-string delete_filter_service=/delete_filter
-string update_filter_service=/update_filter
+Filter[] filters

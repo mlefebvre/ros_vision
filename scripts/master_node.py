@@ -20,31 +20,30 @@ def dict_representer(dumper, data):
 def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
 
-def load_filterchain(req):
+def load_workspace(req):
     rospack = rospkg.RosPack()
-    name = os.path.join(rospack.get_path("ros_vision"), "configs/" + req.name + ".yaml")
+    name = os.path.join(rospack.get_path("ros_vision"), "workspaces/" + req.name + ".yaml")
 
     if not os.path.exists(name):
         name = req.name + ".yaml"
 
     workspace.reset()
+    workspace.name = req.name
 
     with open(name, 'r') as f:
         for filtergroup_name, filters in yaml.load(f).items():
             workspace.add_group(filtergroup_name, filters)
 
-        filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names()))
+    return ros_vision.srv.LoadWorkspaceResponse()
 
-    return ros_vision.srv.LoadFilterChainResponse()
-
-def list_filterchains(req):
-    res = ros_vision.srv.ListFilterChainsResponse()
+def list_workspaces(req):
+    res = ros_vision.srv.ListWorkspacesResponse()
     rospack = rospkg.RosPack()
-    res.filterchains = []
+    res.workspaces = []
 
-    for filterchain in os.listdir(os.path.join(rospack.get_path("ros_vision"), "configs")):
-        if filterchain.endswith(".yaml"):
-            res.filterchains.append(filterchain[:-5])
+    for workspace in os.listdir(os.path.join(rospack.get_path("ros_vision"), "workspaces")):
+        if workspace.endswith(".yaml"):
+            res.workspaces.append(workspace[:-5])
 
     return res
 
@@ -53,9 +52,6 @@ def save_filterchain():
 
 def create_filtergroup(req):
     workspace.add_group(req.name)
-    filtergroup_list_publisher.publish(MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names()))
-
-    return ros_vision.srv.CreateFilterGroupResponse()
 
 def list_filter_types(req):
     res = ros_vision.srv.ListFilterTypesResponse()
@@ -66,31 +62,23 @@ def list_filter_types(req):
 
     return res
 
-def list_filtergroups(req):
-    return MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names())
-
 def on_workspace_update():
-    print workspace.input_topics
-    print workspace.output_topics
-    print workspace.filter_chains[0].nodes(data=True)
+    workspace_publisher.publish(MessageFactory.create_workspace_message_from_workspace(workspace))
 
 workspace = Workspace()
 
-list_filterchains_service = rospy.Service('~list_filterchains', ros_vision.srv.ListFilterChains, list_filterchains)
-load_filterchain_service = rospy.Service('~load_filterchain', ros_vision.srv.LoadFilterChain, load_filterchain)
+list_workspaces_service = rospy.Service('~list_workspaces', ros_vision.srv.ListWorkspaces, list_workspaces)
+load_workspace_service = rospy.Service('~load_workspace', ros_vision.srv.LoadWorkspace, load_workspace)
 create_filtergroup_service = rospy.Service('~create_filtergroup', ros_vision.srv.CreateFilterGroup, create_filtergroup)
-list_filtergroup_service = rospy.Service('~list_filtergroups', ros_vision.srv.ListFilterGroups, list_filtergroups)
 list_filter_types_service = rospy.Service('~list_filter_types', ros_vision.srv.ListFilterTypes, list_filter_types)
-
-filtergroup_list_publisher = rospy.Publisher('~filtergroups', ros_vision.msg.FilterGroupList, queue_size=1, latch=True)
+workspace_publisher = rospy.Publisher('~workspace', ros_vision.msg.Workspace, queue_size=1, latch=True)
 
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
-
-req = ros_vision.srv.LoadFilterChainRequest()
-req.name = 'test_vert_orange'
-load_filterchain(req)
+# req = ros_vision.srv.LoadWorkspaceRequest()
+# req.name = 'test_vert_orange'
+# load_workspace(req)
 
 while not workspace.is_ready() and not rospy.is_shutdown():
     rospy.sleep(0.1)

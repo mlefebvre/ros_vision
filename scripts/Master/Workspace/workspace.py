@@ -6,6 +6,7 @@ from Group.group import Group
 
 class Workspace:
     def __init__(self):
+        self.name = None
         self.graph_lock = Lock()
         self.groups = {}
         self.filter_chains = []

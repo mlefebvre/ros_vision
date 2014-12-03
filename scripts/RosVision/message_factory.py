@@ -7,16 +7,25 @@ class MessageFactory:
         pass
 
     @staticmethod
-    def create_filtergrouplist_message_from_string_list(filtergroup_names):
-        filtergroup_list = ros_vision.msg.FilterGroupList()
-        filtergroup_list.filtergroups = []
+    def create_workspace_message_from_workspace(workspace):
+        w = ros_vision.msg.Workspace()
+        w.name = workspace.name
+        w.input_topics = []
+        w.filter_groups = []
 
-        for filtergroup_name in filtergroup_names:
-            filtergroup = ros_vision.msg.FilterGroup()
-            filtergroup.name = filtergroup_name
-            filtergroup_list.filtergroups.append(filtergroup)
+        for filter_chain_inputs in workspace.input_topics:
+            for input_topic in filter_chain_inputs:
+                input = ros_vision.msg.IODescriptor()
+                input.topic, input.type = input_topic
+                w.input_topics.append(input)
 
-        return filtergroup_list
+        for filter_group_name in workspace.groups:
+            fg = ros_vision.msg.FilterGroup()
+            fg.name = filter_group_name[1:]
+            fg.filters = workspace.groups[filter_group_name].filters.values()
+            w.filter_groups.append(fg)
+
+        return w
 
     @staticmethod
     def create_filter_message_from_descriptor(descriptor):
