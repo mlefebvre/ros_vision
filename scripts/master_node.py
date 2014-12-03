@@ -78,9 +78,9 @@ workspace_publisher = rospy.Publisher('~workspace', ros_vision.msg.Workspace, qu
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
-# req = ros_vision.srv.LoadWorkspaceRequest()
-# req.name = 'test_vert_orange'
-# load_workspace(req)
+req = ros_vision.srv.LoadWorkspaceRequest()
+req.name = 'test_vert_orange'
+load_workspace(req)
 
 while not workspace.is_ready() and not rospy.is_shutdown():
     rospy.sleep(0.1)
