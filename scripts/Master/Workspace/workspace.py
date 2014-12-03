@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import networkx as nx
 from threading import Lock
 import matplotlib.pyplot as plt
@@ -8,7 +9,7 @@ class Workspace:
     def __init__(self):
         self.name = None
         self.graph_lock = Lock()
-        self.groups = {}
+        self.groups = OrderedDict()
         self.filter_chains = []
         self.input_topics = []
         self.output_topics = []
@@ -63,7 +64,7 @@ class Workspace:
     def _on_group_update(self):
         self.update_workspace()
 
-    def add_group(self, name, filters={}):
+    def add_group(self, name, filters=OrderedDict()):
         name = "/" + name
         self.groups[name] = Group(name, filters, self._on_group_update)
 
@@ -102,7 +103,7 @@ class Workspace:
     def reset(self):
         for g in self.groups.values():
             g.kill()
-        self.groups = {}
+        self.groups = OrderedDict()
         self.filter_chains = []
         self.input_topics = []
         self.output_topics = []

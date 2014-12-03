@@ -15,7 +15,8 @@ from cv_bridge import CvBridge
 import cv2
 import os.path
 import base64
-import jsonpickle as json
+import json
+from util.message_encoder import MessageEncoder
 import datetime
 
 class MasterHandler(tornado.websocket.WebSocketHandler):
@@ -35,7 +36,7 @@ class MasterHandler(tornado.websocket.WebSocketHandler):
         create_filtergroup(req)
 
     def update_workspace(self, workspace):
-        self.write_message(json.encode(workspace, unpicklable=False))
+        self.write_message(json.dumps(workspace, cls=MessageEncoder))
 
 class GUI(tornado.web.Application):
     def __init__(self):
@@ -95,20 +96,20 @@ class TopicsHandler(tornado.websocket.WebSocketHandler):
             if key in input_topic_types:
                 filtered_topics.setdefault(key, []).append(value)
 
-        self.write_message(json.encode(filtered_topics, unpicklable=False))
+        self.write_message(json.dumps(filtered_topics))
         tornado.ioloop.IOLoop.instance().add_timeout(client_refresh_rate, self.send_topics)
 
 class FiltersHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         rospy.wait_for_service('/vision_master/list_filter_types')
         list_filter_types = rospy.ServiceProxy('/vision_master/list_filter_types', ros_vision.srv.ListFilterTypes)
-        self.write_message(json.encode(list_filter_types().filter_list.filters, unpicklable=False))
+        self.write_message(json.dumps(list_filter_types().filter_list.filters, cls=MessageEncoder))
 
 class LoadHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         rospy.wait_for_service('/vision_master/list_workspaces')
         list_workspaces = rospy.ServiceProxy('/vision_master/list_workspaces', ros_vision.srv.ListWorkspaces)
-        self.write_message(json.encode(list_workspaces().workspaces, unpicklable=False))
+        self.write_message(json.dumps(list_workspaces().workspaces))
 
     def on_message(self, message):
         req = ros_vision.srv.LoadWorkspaceRequest()

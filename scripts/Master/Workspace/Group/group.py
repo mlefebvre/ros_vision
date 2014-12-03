@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from filter_group_node_wrapper import FilterGroupNodeWrapper
 import rospy
 from ros_vision.msg import FilterList
@@ -8,12 +9,12 @@ class Group:
         self.name = name
         self.wrapper = FilterGroupNodeWrapper(name, filters)
         self.subscriber = rospy.Subscriber("%s/filters" % name, FilterList, self._update_callback)
-        self.filters = {}
+        self.filters = OrderedDict()
         self.on_update = on_update
         self.ready = False
 
     def _update_callback(self, msg):
-        filters = {}
+        filters = OrderedDict()
         for f in msg.filters:
             name = self.name + "/" + f.name
             filters[name] = f

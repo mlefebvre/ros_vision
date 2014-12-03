@@ -59,11 +59,8 @@ function init_filter(filter_selector, options) {
     filter_selector.find(".filter-picker").val(type);
     filter_selector.find(".filter-name").val(name);
 
-    if(inputs.length > 0) {
+    if(inputs.length > 0 && outputs.length > 0) {
         init_filter_inputs(filter_selector, inputs);
-    }
-
-    if(outputs.length > 0) {
         init_filter_outputs(filter_selector, outputs);
     }
 
@@ -84,7 +81,7 @@ function init_filter_inputs(filter_selector, inputs) {
     for(i in inputs) {
         jsp.addEndpoint(filter_selector.find(".filter-inputs"),
             {
-                uuid: inputs[i].topic.replace(/\//g, "-").toLowerCase(),
+                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").val() + "_" + filter_selector.find(".filter-name").val() + "_" + inputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (inputs.length + 1)), -1, 0]
             },
             {
@@ -109,7 +106,7 @@ function init_filter_outputs(filter_selector, outputs) {
     for(i in outputs) {
         jsp.addEndpoint(filter_selector.find(".filter-outputs"),
             {
-                uuid: outputs[i].topic.replace(/\//g, "-").toLowerCase(),
+                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").val() + "_" + filter_selector.find(".filter-name").val() + "_" + outputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (outputs.length + 1)), 1, 0]
             },
             {
@@ -131,6 +128,12 @@ function init_filter_outputs(filter_selector, outputs) {
                 ]
             }
         );
+    }
+}
+
+function init_connections(inputs, filter_group_name, filter_name) {
+    for(i in inputs) {
+        jsp.connect({ uuids:[inputs[i].topic.replace(/\//g, '_'), "_" + filter_group_name + "_" + filter_name + "_" + inputs[i].name] });
     }
 }
 
@@ -173,10 +176,6 @@ function update_topic_list(topic_selector_id, data) {
     $("#" + topic_selector_id + "-topics").append('<option value="None">None</option>');
 
     topics = JSON.parse(data);
-
-    $.map(topics, function (groupName, options) {
-
-    })
 
     $.each(topics, function(groupName, options) {
         var $optgroup = $("<optgroup>", {label: groupName});
@@ -224,19 +223,28 @@ jsPlumb.ready(function() {
     master.onmessage = function(evt) {
         var workspace = JSON.parse(evt.data);
 
-        for(filter_group_name in workspace.filter_groups) {
+        for(group_index in workspace.filter_groups) {
             var new_filtergroup = $(filtergroup.toString());
 
-            $(".filtergroup-add.top").after(new_filtergroup);
-            init_filtergroup(new_filtergroup, {name: filter_group_name});
+            $(".filtergroup-add.bottom").before(new_filtergroup);
+            init_filtergroup(new_filtergroup, {name: workspace.filter_groups[group_index].name});
 
-            for(filter_name in workspace.filter_groups[filter_group_name]) {
+            for(filter_index in workspace.filter_groups[group_index].filters) {
                 var new_filter = $(filter.toString());
 
-                new_filtergroup.find(".filter-add.left").after(new_filter);
-                init_filter(new_filter, workspace[filtergroup_name][filter_name]);
+                new_filtergroup.find(".filter-add.right").before(new_filter);
+                init_filter(new_filter, workspace.filter_groups[group_index].filters[filter_index]);
             }
         }
+
+        // Initialize all connections
+        for(group_index in workspace.filter_groups) {
+            for(filter_index in workspace.filter_groups[group_index].filters) {
+                init_connections(workspace.filter_groups[group_index].filters[filter_index].inputs, workspace.filter_groups[group_index].name, workspace.filter_groups[group_index].filters[filter_index].name);
+            }
+        }
+
+
     };
 
     input1.onmessage = function(evt) {
