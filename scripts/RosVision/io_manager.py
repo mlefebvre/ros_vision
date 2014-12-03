@@ -1,6 +1,6 @@
 import rospy
-from ros_vision.msg import StartSignal
-from threading import Lock, Event
+from ros_vision.msg import Workspace
+from threading import Lock
 
 
 class Singleton(object):
@@ -12,6 +12,7 @@ class Singleton(object):
 
 
 class IOManager(Singleton):
+    SCHEDULER_NAME = '/vision_master/scheduler'
     MAX_LIST_SIZE = 10
     _instance = None
     _publishers = {}
@@ -22,9 +23,26 @@ class IOManager(Singleton):
     _signal_time = 0
     _gc_thread = None
 
-
     def run(self):
         rospy.Timer(rospy.Duration(0.05), self._garbage_collector)
+        rospy.Subscriber("/vision_master/workspace", Workspace, self._on_workspace_update)
+
+    def _on_workspace_update(self, msg):
+        names = ["/" + fg.name for fg in msg.filter_groups]
+        for topic in self._subscribers.keys():
+            ok = False
+            for n in names:
+                if topic.startswith(n):
+                    ok = True
+                    break
+            if not ok:
+                s = self._subscribers[topic]
+                real_topic = s.name
+                if not real_topic.startswith(self.SCHEDULER_NAME):
+                    s.unregister()
+                    real_topic = self.SCHEDULER_NAME + topic
+                    topic_type = self._subscribers_types[topic].get_ros_type()
+                    self._subscribers[topic] = rospy.Subscriber(real_topic, topic_type, self._topic_callback, callback_args=topic)
 
     def _garbage_collector(self, event):
         for name, values in self._last_values.items():
@@ -112,7 +130,9 @@ class IOManager(Singleton):
         return val
 
     def _is_extern(self, name):
-        return name == "/capra_camera/image"
+        if name in self._subscribers:
+            return self._subscribers[name].name.startswith(self.SCHEDULER_NAME)
+        return False
 
     def _get_last_time(self, name):
         if name in self._last_values:
@@ -139,35 +159,3 @@ class IOManager(Singleton):
             return values[0]
         else:
             return tuple(values)
-        # name = self.format_topic_name(name)
-        # if name in self._last_values:
-        #     self._last_values_locks[name].acquire()
-        #     d = self._last_values[name]
-        #     if len(d) > 0:
-        #
-        #         if self._signal_time in d:
-        #             t = self._signal_time
-        #         else:
-        #             max_time = max(d.keys())
-        #             t = max_time
-        #             if wait and max_time != self._signal_time:
-        #                 if max_time > self._signal_time:
-        #                     t = min(d.keys(), key=lambda x:abs(x-self._signal_time))
-        #                 else:
-        #                     max_wait = 0.05
-        #                     max_wait_time = rospy.get_time() + max_wait
-        #                     #print repr(rospy.get_time()), rospy.get_name(), "wait", name, repr(self._signal_time)
-        #                     while rospy.get_time() < max_wait_time:
-        #                         rospy.sleep(1.0/1000)
-        #                         max_time2 = max(d.keys())
-        #                         if max_time2 > max_time:
-        #                             t = max_time2
-        #                             break
-        #
-        #         val = d[t]
-        #         if type(val) != self._subscribers_types[name]:
-        #             val = self._subscribers_types[name](val)
-        #             d[t] = val
-        #         self._last_values_locks[name].release()
-        #         return val
-        # return None
