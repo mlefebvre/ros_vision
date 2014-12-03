@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from node import Node
 import rosparam
 import rospy
@@ -5,7 +6,7 @@ from ros_vision.srv import CreateFilter
 
 
 class FilterGroupNodeWrapper:
-    def __init__(self, name, filters={}):
+    def __init__(self, name, filters=OrderedDict()):
         self.name = name
         self.node = Node("ros_vision", "filter_chain_node.py", name)
         self.reset_params()
