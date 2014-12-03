@@ -79,7 +79,7 @@ yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
 req = ros_vision.srv.LoadWorkspaceRequest()
-req.name = 'test_vert_orange'
+req.name = 'test_point_cloud'
 load_workspace(req)
 
 while not workspace.is_ready() and not rospy.is_shutdown():
@@ -90,6 +90,7 @@ on_workspace_update()
 
 scheduler = Scheduler(workspace)
 scheduler.run()
+
 
 
 
