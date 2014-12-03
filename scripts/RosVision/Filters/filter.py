@@ -68,8 +68,11 @@ class Filter:
     def set_output(self, name, value):
         self._io_manager.update_value(self.get_io_name(name), value)
 
-    def get_input(self, name, wait=True):
-        return self._io_manager.get_value(self.get_io_name(name), wait)
+    def get_input(self, *names):
+        topic_names = []
+        for name in names:
+            topic_names.append(self.get_io_name(name))
+        return self._io_manager.get_values(topic_names)
 
     def get_io_name(self, name):
         if name in self._params:

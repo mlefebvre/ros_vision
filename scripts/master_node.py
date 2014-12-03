@@ -11,6 +11,8 @@ from RosVision.Filters.filter import Filter
 import ros_vision.srv
 import ros_vision.msg
 from Master.Workspace.workspace import Workspace
+from Master.Scheduler.scheduler import Scheduler
+
 
 rospy.init_node('vision_master')
 
@@ -70,9 +72,9 @@ def list_filtergroups(req):
     return MessageFactory.create_filtergrouplist_message_from_string_list(workspace.get_filter_groups_names())
 
 def on_workspace_update():
-    print workspace.input_topics
-    print workspace.output_topics
-    print workspace.filter_chains[0].nodes(data=True)
+    pass#print workspace.input_topics
+    #print workspace.output_topics
+    #print workspace.filter_chains[0].nodes(data=True)
 
 workspace = Workspace()
 
@@ -98,8 +100,9 @@ while not workspace.is_ready() and not rospy.is_shutdown():
 workspace.add_update_listener(on_workspace_update)
 on_workspace_update()
 
-while not rospy.is_shutdown():
-    rospy.Rate(30).sleep()
+scheduler = Scheduler(workspace)
+scheduler.run()
+
 
 
 

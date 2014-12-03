@@ -21,15 +21,10 @@ class IOManager(Singleton):
     _last_values_locks = {}
     _signal_time = 0
     _gc_thread = None
-    _signal_lock = None
-    _signal_topic = None
 
 
     def run(self):
-        self._signal_lock = Event()
-        self._signal_topic = rospy.Subscriber('/vision_master/scheduler/signal', StartSignal, self._signal_callback)
         rospy.Timer(rospy.Duration(0.05), self._garbage_collector)
-
 
     def _garbage_collector(self, event):
         for name, values in self._last_values.items():
@@ -38,22 +33,6 @@ class IOManager(Singleton):
                 min_time = min(values.keys())
                 del values[min_time]
             self._last_values_locks[name].release()
-
-
-    def _signal_callback(self, signal):
-        if rospy.get_name() in signal.group_names:
-            self._signal_time = signal.input_time.to_sec()
-            #print repr(rospy.get_time()), rospy.get_name(), "signal", repr(self._signal_time)
-            self._signal_lock.set()
-
-    def wait_for_signal(self):
-        #print repr(rospy.get_time()), rospy.get_name(), "Wait_signal"
-        self._signal_lock.wait(timeout=1.0)
-        #print repr(rospy.get_time()), rospy.get_name(), "Ok_signal"
-        self._signal_lock.clear()
-
-    def get_last_signal(self):
-        return self._signal_time
 
     def format_topic_name(self, name):
         if not name.startswith("/"):
@@ -80,12 +59,10 @@ class IOManager(Singleton):
             del self._subscribers[name]
 
     def _add_value(self, name, value, time):
-        #print repr(rospy.get_time()), rospy.get_name(), "update", name, repr(time)
         if not name in self._last_values:
             self._last_values_locks[name] = Lock()
             self._last_values[name] = {}
         self._last_values[name][time] = value
-
 
     def _topic_callback(self, msg, topic):
         if hasattr(msg, "header"):
@@ -104,8 +81,6 @@ class IOManager(Singleton):
     def update_value(self, name, value):
         if hasattr(value, 'get_time'):
             time = value.get_time()
-            #time = self._signal_time
-            #value.set_time(time)
         else:
             time = rospy.get_time()
 
@@ -117,42 +92,82 @@ class IOManager(Singleton):
         if pub.get_num_connections() > 0:
             pub.publish(value.to_ros_msg())
 
-    def get_value(self, name, wait=True):
-        name = self.format_topic_name(name)
+    def _get_value(self, name, time=0):
+        val = None
         if name in self._last_values:
             self._last_values_locks[name].acquire()
             d = self._last_values[name]
             if len(d) > 0:
-
-                if self._signal_time in d:
-                    t = self._signal_time
+                if time == 0:
+                    t = max(t for t in d.keys())
                 else:
-                    max_time = max(d.keys())
-                    t = max_time
-                    if wait and max_time != self._signal_time:
-                        if max_time > self._signal_time:
-                            t = min(d.keys(), key=lambda x:abs(x-self._signal_time))
-                        else:
-                            max_wait = 0.05
-                            max_wait_time = rospy.get_time() + max_wait
-                            #print repr(rospy.get_time()), rospy.get_name(), "wait", name, repr(self._signal_time)
-                            while rospy.get_time() < max_wait_time:
-                                rospy.sleep(1.0/1000)
-                                max_time2 = max(d.keys())
-                                if max_time2 > max_time:
-                                    t = max_time2
-                                    break
-
+                    t = min(d.keys(), key=lambda x: abs(x-time))
                 val = d[t]
                 if type(val) != self._subscribers_types[name]:
-                    val = self._subscribers_types[name](val)
-                    d[t] = val
-                self._last_values_locks[name].release()
-                return val
-        return None
+                     val = self._subscribers_types[name](val)
+                     d[t] = val
 
-    # # Singleton
-    # def __new__(cls, *args, **kwargs):
-    #     if not cls._instance:
-    #         cls._instance = super(IOManager, cls).__new__(cls, *args, **kwargs)
-    #     return cls._instance
+            self._last_values_locks[name].release()
+
+        return val
+
+    def _is_extern(self, name):
+        return name == "/capra_camera/image"
+
+    def _get_last_time(self, name):
+        if name in self._last_values:
+            d = self._last_values[name]
+            if len(d) > 0:
+                return max(t for t in d.keys())
+        return 0
+
+    def get_values(self, names):
+        values = []
+        t_names = [self.format_topic_name(name) for name in names]
+
+        time = 0
+        for name in t_names:
+            if not self._is_extern(name):
+                t = self._get_last_time(name)
+                if t > time:
+                    time = t
+
+        for name in t_names:
+            values.append(self._get_value(name, time))
+
+        if len(values) == 1:
+            return values[0]
+        else:
+            return tuple(values)
+        # name = self.format_topic_name(name)
+        # if name in self._last_values:
+        #     self._last_values_locks[name].acquire()
+        #     d = self._last_values[name]
+        #     if len(d) > 0:
+        #
+        #         if self._signal_time in d:
+        #             t = self._signal_time
+        #         else:
+        #             max_time = max(d.keys())
+        #             t = max_time
+        #             if wait and max_time != self._signal_time:
+        #                 if max_time > self._signal_time:
+        #                     t = min(d.keys(), key=lambda x:abs(x-self._signal_time))
+        #                 else:
+        #                     max_wait = 0.05
+        #                     max_wait_time = rospy.get_time() + max_wait
+        #                     #print repr(rospy.get_time()), rospy.get_name(), "wait", name, repr(self._signal_time)
+        #                     while rospy.get_time() < max_wait_time:
+        #                         rospy.sleep(1.0/1000)
+        #                         max_time2 = max(d.keys())
+        #                         if max_time2 > max_time:
+        #                             t = max_time2
+        #                             break
+        #
+        #         val = d[t]
+        #         if type(val) != self._subscribers_types[name]:
+        #             val = self._subscribers_types[name](val)
+        #             d[t] = val
+        #         self._last_values_locks[name].release()
+        #         return val
+        # return None

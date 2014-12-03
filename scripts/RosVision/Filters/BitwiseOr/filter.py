@@ -15,8 +15,7 @@ class BitwiseOrFilter(Filter):
         print "Init %s" % self.name
 
     def execute(self, time=0):
-        im1 = self.get_input("input1")
-        im2 = self.get_input("input2")
+        im1, im2 = self.get_input("input1", "input2")
         if im1 and im2:
             out = Image(cv2.bitwise_or(im1.get_image(), im2.get_image()))
             im1.copy_header(out)

@@ -15,8 +15,7 @@ class MaskFilter(Filter):
         print "Init %s" % self.name
 
     def execute(self, time=0):
-        im = self.get_input("input")
-        mask = self.get_input("mask")
+        im, mask = self.get_input("input", "mask")
         if im and mask:
             im2 = Image(cv2.bitwise_and(im.get_image(), im.get_image(), mask=mask.get_image()))
             im.copy_header(im2)
