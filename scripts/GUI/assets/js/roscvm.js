@@ -1,8 +1,9 @@
 var jsp = null;
+var external_input_sources = []
 var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
 var filter = '<div class="filter sort-disabled"><div class="filter-header"><div class="input-group"><div class="filter-picker-wrapper input-group-btn"></div><input type="text" class="filter-name form-control"><div class="input-group-btn"><button class="delete-filter btn btn-default glyphicon glyphicon-remove" type="button"></button></div></div></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
-var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"><input type="text" class="filtergroup-name" /></div><div class="filtergroup-body"><div class="filter-add left sort-disabled">◁ Add</div><div class="filter-add right sort-disabled">Add ▷</div></div></div></div>';
+var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"><input type="text" class="filtergroup-name" /></div><div class="filtergroup-body"><div class="filter-add left sort-disabled"></div><div class="filter-add right sort-disabled"></div></div></div></div>';
 var filter_metadata = null;
 var filter_picker = $("<select></select>").addClass("filter-picker selectpicker form-control").change(function() {
     filter_picker_selection = filter_metadata.filter(function(f) {
@@ -18,8 +19,59 @@ function init_filter_properties(filter_selector) {
 
 }
 
-function init_filtergroup(filtergroup_selector, options) {
+function optimize_filter_positions() {
+    $(".filter.inactive").remove();
 
+    jsp.selectEndpoints().each(function(endpoint) {
+        for(i in endpoint.connections) {
+            var source_filter = $(endpoint.connections[i].source).closest(".filter");
+            var target_filter = $(endpoint.connections[i].target).closest(".filter");
+
+            if(source_filter.closest(".filtergroup").find(".filtergroup-name").val() != target_filter.closest(".filtergroup").find(".filtergroup-name").val()) {
+                var padding_count = source_filter.index() + 1 - target_filter.index();
+
+                for(var j = 0; j < padding_count; j++) {
+                    var new_filter = $(filter.toString());
+
+                    target_filter.before(new_filter)
+                    init_filter(new_filter, {"visible": false});
+                }
+            }
+        }
+    });
+}
+
+function pad_filter_groups(add_before) {
+    var filter_groups = [];
+    var filter_count = 0;
+    var add_before = (add_before === undefined) ? false : add_before;
+
+    $(".filtergroup-body").map(function (i) {
+        filter_groups[i] = $(this).children().length;
+    });
+
+    filter_count = Math.max.apply(Math, filter_groups) - 2;
+
+    $.each($(".filtergroup-body"), function(i) {
+        var filters_to_add = filter_count - ($(this).children().length - 2);
+
+        if(filters_to_add > 0) {
+            for(var j = 0; j < filters_to_add; j++) {
+                var new_filter = $(filter.toString());
+
+                if(add_before) {
+                    $(this).find(".filter-add.left").after(new_filter);
+                } else {
+                    $(this).find(".filter-add.right").before(new_filter);
+                }
+
+                init_filter(new_filter, {"visible": false});
+            }
+        }
+    });
+}
+
+function init_filtergroup(filtergroup_selector, options) {
     var options = options || {};
     var name = options.name || "";
 
@@ -41,13 +93,17 @@ function init_filtergroup(filtergroup_selector, options) {
         },
         update: function(event, ui) {
             update_sortable_filters();
+            ui.item.closest(".filtergroup-body").children(".inactive").last().remove();
+            pad_filter_groups();
         }
     });
+
+    pad_filter_groups();
 }
 
 function init_filter(filter_selector, options) {
-
     var options = options || {};
+    var visible = (options.visible === undefined) ? true : options.visible;
     var name = options.name || "";
     var type = options.type || "None";
     var inputs = options.inputs || [];
@@ -72,6 +128,15 @@ function init_filter(filter_selector, options) {
         $(this).addClass("bg-info");
         selected_filter = $(this);
     });
+
+    filter_selector.find(".delete-filter").click(function () {
+        //TODO: Add modal confirmation
+        remove_filter(filter_selector);
+    });
+
+    if(!visible) {
+        filter_selector.addClass("inactive")
+    }
 }
 
 function init_filter_inputs(filter_selector, inputs) {
@@ -133,8 +198,18 @@ function init_filter_outputs(filter_selector, outputs) {
 
 function init_connections(inputs, filter_group_name, filter_name) {
     for(i in inputs) {
-        jsp.connect({ uuids:[inputs[i].topic.replace(/\//g, '_'), "_" + filter_group_name + "_" + filter_name + "_" + inputs[i].name] });
+        var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '_')) || $("#" + inputs[i].topic.replace(/\//g, '_'));
+        var output_endpoint = jsp.getEndpoint("_" + filter_group_name + "_" + filter_name + "_" + inputs[i].name);
+
+        jsp.connect({ source: input_endpoint, target: output_endpoint});
     }
+}
+
+function remove_filter(filter_selector) {
+    filter_selector.addClass("inactive");
+    $(".filtergroup-body").children(".inactive:nth-child(" + (filter_selector.index() + 1) + ")").remove();
+    pad_filter_groups();
+    jsp.repaintEverything();
 }
 
 function update_sortable_filters() {
@@ -186,18 +261,6 @@ function update_topic_list(topic_selector_id, data) {
             var $option = $("<option>", {text: option, value: groupName});
 
             $option.appendTo($optgroup);
-            if($("#" + groupName.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + option + ")").length == 0) {
-                jsp.makeSource($(topic_input(option)).appendTo("#" + groupName.split("/").pop().toLowerCase() + "-inputs"),
-                    {
-                        anchor: "Right",
-                        scope: groupName,
-                        connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
-                        connectorStyle: {
-                            strokeStyle: "#0000FF",
-                            lineWidth: 4
-                        }
-                    });
-            }
         });
     });
 
@@ -223,6 +286,27 @@ jsPlumb.ready(function() {
     master.onmessage = function(evt) {
         var workspace = JSON.parse(evt.data);
 
+        for(input_topic_index in workspace.input_topics) {
+            var topic_name = workspace.input_topics[input_topic_index].topic;
+            var topic_type = workspace.input_topics[input_topic_index].type;
+
+            if($("#" + topic_type.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + topic_name + ")").length == 0) {
+                var input = $(topic_input(topic_name)).appendTo("#" + topic_type.split("/").pop().toLowerCase() + "-inputs");
+
+                input.attr("id", topic_name.replace(/\//g, '_'));
+                external_input_sources.push(jsp.makeSource(input,
+                    {
+                        anchor: "Right",
+                        scope: topic_type,
+                        connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
+                        connectorStyle: {
+                            strokeStyle: "#0000FF",
+                            lineWidth: 4
+                        }
+                    }));
+            }
+        }
+
         for(group_index in workspace.filter_groups) {
             var new_filtergroup = $(filtergroup.toString());
 
@@ -244,7 +328,8 @@ jsPlumb.ready(function() {
             }
         }
 
-
+        optimize_filter_positions();
+        pad_filter_groups();
     };
 
     input1.onmessage = function(evt) {
@@ -262,7 +347,6 @@ jsPlumb.ready(function() {
 
     filters.onmessage = function(evt) {
         filter_metadata = JSON.parse(evt.data)
-        $(filter_picker).append($("<option selected disabled>Pick a filter type...</option>"));
 
         $.each(filter_metadata, function(i, f) {
              $(filter_picker).append($("<option></option>").val(f.name).text(f.name));
@@ -329,6 +413,7 @@ jsPlumb.ready(function() {
 
         $(this).before(new_filter);
         init_filter(new_filter);
+        pad_filter_groups();
     });
 
     $("body").on("click", ".filter-add.left", function() {
@@ -336,6 +421,7 @@ jsPlumb.ready(function() {
 
         $(this).after(new_filter);
         init_filter(new_filter);
+        pad_filter_groups(true);
     });
 
 	jsp = jsPlumb.getInstance({
@@ -350,7 +436,7 @@ jsPlumb.ready(function() {
 			} ],
             [ "Label", { label:"FOO", id:"label", cssClass:"aLabel" }]
 		],
-		Container:"workspace"
+		Container:"gui-body"
 	});
 
     jsp.doWhileSuspended(function() {

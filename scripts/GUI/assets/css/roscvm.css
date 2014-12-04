@@ -8,53 +8,53 @@
     z-index: 10;
 }
 
-html, body, .roscvm-container
-{
-    height: 100%;
-}
-
-.roscvm-wrapper {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.roscvm-header {
-    display: flex;
+.gui-header {
+    position: fixed;
+    top: 0px;
+    left: 0px;
     height: 240px;
-    flex-direction: row;
+    width: 100%;
+    z-index: 15;
 }
 
-.roscvm-body {
-    flex: 1;
+.gui-body {
+    position: absolute;
+    min-width: 100%;
+    top: 240px;
+    border: 2px solid pink;
 }
 
 .inputs-container {
-    display: flex;
-    flex-direction: column;
-    width: 300px;
-    float: left;
+    position: absolute;
+    width: 335px;
+    top: 10px;
     margin: 15px 100px 0 0;
 }
 
 .topic-inputs {
-    flex: 1;
-    overflow: auto;
 }
 
 .feed-container {
-    width: 320px;
-    height: 240px;
-    flex: 0 0 320px;
     position: relative;
+    height: 240px;
+    width: 320px;
+    float: left;
 }
 
 .settings-container {
-    flex: 0 0 300px;
+    position: relative;
+    height: 240px;
+    width: 300px;
+    float: left;
+    background-color: #ffffff;
 }
 
 .properties-container {
-    flex: 1;
+    position: relative;
+    height: 240px;
+    width: calc(100% - 940px);
+    float: left;
+    background-color: #ffffff;
 }
 
 canvas {
@@ -79,88 +79,119 @@ canvas {
 }
 
 .workspace {
-    float: left;
-    width: calc(100% - 400px);
-    padding-top: 10px;
+    position: absolute;
+    top: 10px;
+    left: 400px;
+    border: 2px solid purple;
 }
 
 /**********/
 
 .filtergroup-add {
+    position: relative;
     height: 25px;
     text-align: center;
+    border: 2px solid blue;
 }
 
 .filtergroup {
-    display: flex;
-    flex-direction: column;
-    height: 150px;
+    position: relative;
+    height: 300px;
     margin: 10px 0px 10px 0px;
+    border: 2px solid red;
 }
 
 .filtergroup-header {
-    flex: 0 0 25px;
+    position: relative;
+    height: 50px;
+    border: 2px solid brown;
 }
 
 .filtergroup-title {
-    height: 25px;
+    position: relative;
+    height: 50px;
 }
 
 .filtergroup-body {
-    display: flex;
-    flex-direction: row;
-    flex: 1;
-    margin-bottom: 0px;
-}
-
-.filter-placeholder {
-    list-style: none;
-    flex: 1;
-    margin: 0px 10px 0px 10px;
     position: relative;
+    height: 250px;
+    border: 2px solid orange;
+    white-space: nowrap;
 }
 
 .filter {
-    display: flex;
-    flex-direction: column;
-    list-style: none;
-    flex: 1;
-    margin: 0px 10px 0px 10px;
     position: relative;
+    display: inline-block;
+    list-style: none;
+    height: 250px;
+    width: 500px;
+    margin: 0px 10px 0px 10px;
+    border: 2px solid greenyellow;
+}
+
+.filter-placeholder {
+    position: relative;
+    display: inline-block;
+    list-style: none;
+    height: 250px;
+    width: 500px;
+    margin: 0px 10px 0px 10px;
+    background-color: #bce8f1;
 }
 
 .filter-header {
-    flex: 0 0 25px;
+    position: relative;
+    height: 50px;
+    border: 2px solid green;
 }
 
-.filter-picker {
-
+.filter-picker-wrapper, .filter-picker {
+    height: 50px;
+    width: 200px;
 }
 
 .filter-name {
-
+    height: 50px;
+    width: 250px;
 }
 
 .delete-filter {
-
+    height: 50px;
+    width: 50px;
 }
 
 .filter-body {
-    display: flex;
-    flex-direction: row;
-    flex: 1;
+    position: relative;
+    height: 200px;
+    border: 2px solid yellow;
 }
 
 .filter-inputs {
-    flex: 1;
+    position: relative;
+    height: 200px;
+    width: 50%;
+    display: inline-block;
+    border: 2px solid #000000;
 }
 
 .filter-outputs {
-    flex: 1;
+    position: relative;
+    height: 200px;
+    width: 50%;
+    display: inline-block;
+    border: 2px solid #000000;
 }
 
 .filter-add {
+    position: relative;
+    display: inline-block;
     list-style: none;
-    flex: 0 0 60px;
+    width: 60px;
+    height: 250px;
     margin-bottom: 0px;
+    border: 2px solid gray;
+}
+
+.inactive {
+    visibility: hidden;
 }
