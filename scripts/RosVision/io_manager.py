@@ -25,7 +25,7 @@ class IOManager(Singleton):
 
     def run(self):
         rospy.Timer(rospy.Duration(0.05), self._garbage_collector)
-        rospy.Subscriber("/vision_master/workspace", Workspace, self._on_workspace_update)
+        #rospy.Subscriber("/vision_master/workspace", Workspace, self._on_workspace_update)
 
     def _on_workspace_update(self, msg):
         names = ["/" + fg.name for fg in msg.filter_groups]
