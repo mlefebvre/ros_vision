@@ -1,7 +1,7 @@
 line_detector:
   blur:
     type: Blur
-    input: /camera/rgb/image_color
+    input: /openni_node/image
     ksize: 5
   hsv:
     type: BGR2HSV
@@ -11,11 +11,15 @@ line_detector:
     input: hsv/output
     min_hue: 122
     max_hue: 160
-    min_saturation: 100
+    min_saturation: 60
     min_value: 25
   pfilter:
     type: ParticleFilter
     input: thresh/output
-    min_area: 5
-    kernel_height: 10
-    kernel_width: 10
+    min_area: 20
+    kernel_height: 5
+    kernel_width: 5
+  mask:
+    type: Mask
+    input: /openni_node/image
+    mask: pfilter/output
