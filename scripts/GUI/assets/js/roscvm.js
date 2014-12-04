@@ -2,8 +2,8 @@ var jsp = null;
 var external_input_sources = []
 var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
-var filter = '<div class="filter sort-disabled"><div class="filter-header"><div class="input-group"><div class="filter-picker-wrapper input-group-btn"></div><input type="text" class="filter-name form-control"><div class="input-group-btn"><button class="delete-filter btn btn-default glyphicon glyphicon-remove" type="button"></button></div></div></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
-var filtergroup = '<div class="filtergroup"><div class="filtergroup-header"><input type="text" class="filtergroup-name" /></div><div class="filtergroup-body"><div class="filter-add left sort-disabled"></div><div class="filter-add right sort-disabled"></div></div></div></div>';
+var filter = '<div class="filter sort-disabled"><div class="filter-header"><div class="input-group"><div class="filter-picker-wrapper input-group-btn"></div><input type="text" class="filter-name form-control"><div class="input-group-btn"><button class="delete-filter btn btn-default glyphicon glyphicon-remove" type="button" /></div></div></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
+var filtergroup = '<div class="filtergroup"><div class="filtergroup-header input-group input-group-lg"><span class="filtergroup-name input-group-addon"></span><span class="input-group-btn"><button class="edit-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filtergroup-body well well-sm"><div class="add-filter-container left sort-disabled"><button type="button" class="add-filter left btn btn-default"><span class="glyphicon glyphicon-arrow-right"></span></button></div><div class="add-filter-container right sort-disabled"><button type="button" class="add-filter right btn btn-default"><span class="glyphicon glyphicon-arrow-left"></span></button></div></div></div>';
 var filter_metadata = null;
 var filter_picker = $("<select></select>").addClass("filter-picker selectpicker form-control").change(function() {
     filter_picker_selection = filter_metadata.filter(function(f) {
@@ -60,9 +60,9 @@ function pad_filter_groups(add_before) {
                 var new_filter = $(filter.toString());
 
                 if(add_before) {
-                    $(this).find(".filter-add.left").after(new_filter);
+                    $(this).find(".add-filter-container.left").after(new_filter);
                 } else {
-                    $(this).find(".filter-add.right").before(new_filter);
+                    $(this).find(".add-filter-container.right").before(new_filter);
                 }
 
                 init_filter(new_filter, {"visible": false});
@@ -75,13 +75,13 @@ function init_filtergroup(filtergroup_selector, options) {
     var options = options || {};
     var name = options.name || "";
 
-    $(filtergroup_selector).find(".filtergroup-name").val(name);
+    $(filtergroup_selector).find(".filtergroup-name").text(name);
 
     $(filtergroup_selector).find(".filtergroup-body").sortable({
         tolerance: "pointer",
         scroll: false,
         items: ".filter",
-        cancel: ".sort-disabled,.filter-picker",
+        cancel: ".sort-disabled,.filter-picker,.filter-name",
         connectWith: ".filtergroup-body",
         containment: "#workspace",
         placeholder: "filter-placeholder",
@@ -105,7 +105,7 @@ function init_filter(filter_selector, options) {
     var options = options || {};
     var visible = (options.visible === undefined) ? true : options.visible;
     var name = options.name || "";
-    var type = options.type || "None";
+    var type = options.type || "";
     var inputs = options.inputs || [];
     var outputs = options.outputs || [];
 
@@ -124,6 +124,8 @@ function init_filter(filter_selector, options) {
         if(selected_filter != null) {
             selected_filter.removeClass("bg-info");
         }
+
+        // TODO: Get filter properties from filter metadata
 
         $(this).addClass("bg-info");
         selected_filter = $(this);
@@ -268,12 +270,12 @@ function update_topic_list(topic_selector_id, data) {
 }
 
 jsPlumb.ready(function() {
-    var master = new WebSocket("ws://localhost:8888/master/");
     var input1 = new WebSocket("ws://localhost:8888/input1/");
     var input2 = new WebSocket("ws://localhost:8888/input2/");
     var topics = new WebSocket("ws://localhost:8888/topics/");
     var filters = new WebSocket("ws://localhost:8888/filters/");
     var load = new WebSocket("ws://localhost:8888/load/");
+    var master = new WebSocket("ws://localhost:8888/master/");
     //var save = new WebSocket("ws://localhost:8888/save/");
 
     draw_image("feed1", "None");
@@ -286,6 +288,7 @@ jsPlumb.ready(function() {
     master.onmessage = function(evt) {
         var workspace = JSON.parse(evt.data);
 
+        // Initialize external inputs
         for(input_topic_index in workspace.input_topics) {
             var topic_name = workspace.input_topics[input_topic_index].topic;
             var topic_type = workspace.input_topics[input_topic_index].type;
@@ -307,6 +310,7 @@ jsPlumb.ready(function() {
             }
         }
 
+        // Initialize filters and filter groups
         for(group_index in workspace.filter_groups) {
             var new_filtergroup = $(filtergroup.toString());
 
@@ -316,7 +320,7 @@ jsPlumb.ready(function() {
             for(filter_index in workspace.filter_groups[group_index].filters) {
                 var new_filter = $(filter.toString());
 
-                new_filtergroup.find(".filter-add.right").before(new_filter);
+                new_filtergroup.find(".add-filter-container.right").before(new_filter);
                 init_filter(new_filter, workspace.filter_groups[group_index].filters[filter_index]);
             }
         }
@@ -408,7 +412,7 @@ jsPlumb.ready(function() {
         init_filtergroup(new_filtergroup);
     });
 
-    $("body").on("click", ".filter-add.right", function() {
+    $("body").on("click", ".add-filter.right", function() {
         var new_filter = $(filter.toString());
 
         $(this).before(new_filter);
@@ -416,7 +420,7 @@ jsPlumb.ready(function() {
         pad_filter_groups();
     });
 
-    $("body").on("click", ".filter-add.left", function() {
+    $("body").on("click", ".add-filter.left", function() {
         var new_filter = $(filter.toString());
 
         $(this).after(new_filter);

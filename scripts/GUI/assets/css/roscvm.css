@@ -82,7 +82,6 @@ canvas {
     position: absolute;
     top: 10px;
     left: 400px;
-    border: 2px solid purple;
 }
 
 /**********/
@@ -97,32 +96,27 @@ canvas {
 .filtergroup {
     position: relative;
     height: 300px;
-    margin: 10px 0px 10px 0px;
-    border: 2px solid red;
+    margin: 10px 0px 30px 0px;
 }
 
 .filtergroup-header {
     position: relative;
-    height: 50px;
-    border: 2px solid brown;
+    text-align: center;
 }
 
-.filtergroup-title {
-    position: relative;
-    height: 50px;
+.filtergroup-name {
+    width: 100%;
 }
 
 .filtergroup-body {
     position: relative;
-    height: 250px;
-    border: 2px solid orange;
+    height: 275px;
     white-space: nowrap;
 }
 
 .filter {
     position: relative;
     display: inline-block;
-    list-style: none;
     height: 250px;
     width: 500px;
     margin: 0px 10px 0px 10px;
@@ -132,7 +126,6 @@ canvas {
 .filter-placeholder {
     position: relative;
     display: inline-block;
-    list-style: none;
     height: 250px;
     width: 500px;
     margin: 0px 10px 0px 10px;
@@ -182,14 +175,17 @@ canvas {
     border: 2px solid #000000;
 }
 
-.filter-add {
+.add-filter-container {
     position: relative;
     display: inline-block;
-    list-style: none;
     width: 60px;
     height: 250px;
-    margin-bottom: 0px;
-    border: 2px solid gray;
+    vertical-align: top;
+}
+
+.add-filter {
+    height: 100%;
+    width: 100%;
 }
 
 .inactive {
