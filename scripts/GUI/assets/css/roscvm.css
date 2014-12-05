@@ -12,7 +12,7 @@
     position: fixed;
     top: 0px;
     left: 0px;
-    height: 240px;
+    height: 300px;
     width: 100%;
     z-index: 15;
     background-color: #ffffff;
@@ -21,29 +21,35 @@
 .gui-body {
     position: absolute;
     min-width: 100%;
-    top: 240px;
+    top: 300px;
 }
 
 .inputs-container {
     position: absolute;
     width: 335px;
     top: 10px;
-    margin: 15px 100px 0 0;
-}
-
-.topic-inputs {
+    margin: 0 100px 0 0;
 }
 
 .feed-container {
     position: relative;
-    height: 240px;
+    height: 300px;
     width: 320px;
     float: left;
 }
 
+.feed-header {
+    position: relative;
+    height: 40px;
+}
+
+.feed-controls {
+    margin-bottom: 5px;
+}
+
 .settings-container {
     position: relative;
-    height: 240px;
+    height: 300px;
     width: 300px;
     float: left;
     background-color: #ffffff;
@@ -51,7 +57,7 @@
 
 .properties-container {
     position: relative;
-    height: 240px;
+    height: 300px;
     width: calc(100% - 950px);
     float: left;
     margin-right: 5px;
@@ -70,13 +76,6 @@ canvas {
     bottom: 5px;
     right: 15px;
     background-color: #ffffff;
-    z-index: 2;
-}
-
-.topic-selector {
-    position: absolute;
-    top: 5px;
-    left: 5px;
     z-index: 2;
 }
 

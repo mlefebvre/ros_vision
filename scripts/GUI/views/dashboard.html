@@ -22,13 +22,13 @@
                 <div class="input-group">
                     <input id="filterchain-name" type="text" class="form-control" />
                     <span class="input-group-btn">
-                        <button id="save-filterchain" class="btn btn-default" type="button">Save</button>
+                        <button id="save-filterchain" class="btn btn-default" type="button">Save Workspace</button>
                     </span>
                 </div>
                 <div class="input-group">
                     <select id="filterchain-picker" class="form-control"></select>
                     <span class="input-group-btn">
-                        <button id="load-filterchain" class="btn btn-default" type="button">Load</button>
+                        <button id="load-filterchain" class="btn btn-default" type="button">Load Workspace</button>
                     </span>
                 </div>
             </div>
@@ -41,14 +41,24 @@
                 </div>
             </div>
             <div id="feed1-container" class="feed-container">
+                <select id="feed1-topics" class="topic-selector form-control"></select>
+                <span class="feed-controls btn-group btn-group-xs btn-group-justified" role="group">
+                    <a href="#" id="feed1-snapshot" class="btn btn-default"><span class="glyphicon glyphicon-camera"></span>&nbsp;Save Snapshot</a>
+                    <a href="#" id="feed1-start-record" class="btn btn-default"><span class="glyphicon glyphicon-play"></span>&nbsp;Start Recording</a>
+                    <a href="#" id="feed1-stop-record" class="btn btn-default" style="display: none"><span class="glyphicon glyphicon-stop"></span>&nbsp;Stop Recording</a>
+                </span>
                 <canvas id="feed1" width="320" height="240"></canvas>
-                <select id="feed1-topics" class="topic-selector"></select>
                 <span id="feed1-info" class="feed-info">TEST 1</span>
             </div>
 
             <div id="feed2-container" class="feed-container">
+                <select id="feed2-topics" class="topic-selector form-control"></select>
+                <span class="feed-controls btn-group btn-group-xs btn-group-justified" role="group">
+                    <a href="#" id="feed2-snapshot" class="btn btn-default"><span class="glyphicon glyphicon-camera"></span>&nbsp;Save Snapshot</a>
+                    <a href="#" id="feed2-start-record" class="btn btn-default"><span class="glyphicon glyphicon-play"></span>&nbsp;Start Recording</a>
+                    <a href="#" id="feed2-stop-record" class="btn btn-default" style="display: none"><span class="glyphicon glyphicon-stop"></span>&nbsp;Stop Recording</a>
+                </span>
                 <canvas id="feed2" width="320" height="240"></canvas>
-                <select id="feed2-topics" class="topic-selector"></select>
                 <span id="feed2-info" class="feed-info">TEST 2</span>
             </div>
         </div>
