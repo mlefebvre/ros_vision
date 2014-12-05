@@ -22,7 +22,14 @@ def dict_representer(dumper, data):
 def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
 
+def get_workspace(req):
+    res = ros_vision.srv.GetWorkspaceResponse();
+    res.workspace = MessageFactory.create_workspace_message_from_workspace(workspace)
+
+    return res
+
 def load_workspace(req):
+    res = ros_vision.srv.LoadWorkspaceResponse();
     rospack = rospkg.RosPack()
     name = os.path.join(rospack.get_path("ros_vision"), "workspaces/" + req.name + ".yaml")
 
@@ -36,7 +43,14 @@ def load_workspace(req):
         for filtergroup_name, filters in yaml.load(f).items():
             workspace.add_group(filtergroup_name, filters)
 
-    return ros_vision.srv.LoadWorkspaceResponse()
+    while not workspace.is_ready() and not rospy.is_shutdown():
+        rospy.sleep(0.1)
+
+    scheduler = Scheduler(workspace)
+
+    res.workspace = MessageFactory.create_workspace_message_from_workspace(workspace)
+
+    return res
 
 def list_workspaces(req):
     res = ros_vision.srv.ListWorkspacesResponse()
@@ -64,35 +78,20 @@ def list_filter_types(req):
 
     return res
 
-def on_workspace_update():
-    workspace_publisher.publish(MessageFactory.create_workspace_message_from_workspace(workspace))
-
 workspace = Workspace()
+scheduler = None
 
+get_workspace_service = rospy.Service('~get_workspace', ros_vision.srv.GetWorkspace, get_workspace)
 list_workspaces_service = rospy.Service('~list_workspaces', ros_vision.srv.ListWorkspaces, list_workspaces)
 load_workspace_service = rospy.Service('~load_workspace', ros_vision.srv.LoadWorkspace, load_workspace)
 create_filtergroup_service = rospy.Service('~create_filtergroup', ros_vision.srv.CreateFilterGroup, create_filtergroup)
 list_filter_types_service = rospy.Service('~list_filter_types', ros_vision.srv.ListFilterTypes, list_filter_types)
-workspace_publisher = rospy.Publisher('~workspace', ros_vision.msg.Workspace, queue_size=1, latch=True)
 
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
-req = ros_vision.srv.LoadWorkspaceRequest()
-req.name = 'demo_lignes_mauves'
-load_workspace(req)
-
-while not workspace.is_ready() and not rospy.is_shutdown():
-    rospy.sleep(0.1)
-
-workspace.add_update_listener(on_workspace_update)
-on_workspace_update()
-
-scheduler = Scheduler(workspace)
-scheduler.run()
-
-
-
-
-
-
+rate = rospy.Rate(100)
+while not rospy.is_shutdown():
+    if(scheduler is not None):
+        scheduler.run()
+    rate.sleep()

@@ -21,23 +21,26 @@ from util.message_encoder import MessageEncoder
 import datetime
 
 class MasterHandler(tornado.websocket.WebSocketHandler):
+    clients = set()
+
     def open(self):
-        self.master_subscriber = rospy.Subscriber('/vision_master/workspace', ros_vision.msg.Workspace, self.update_workspace)
+        MasterHandler.clients.add(self)
+
+        rospy.wait_for_service('/vision_master/get_workspace')
+        get_workspace = rospy.ServiceProxy('/vision_master/get_workspace', ros_vision.srv.GetWorkspace)
+        self.write_message(json.dumps(get_workspace().workspace, cls=MessageEncoder))
 
     def on_close(self):
-        self.master_subscriber.unregister()
+        MasterHandler.clients.remove(self)
 
-    def on_message(self, name):
-        rospy.wait_for_service('/vision_master/create_filtergroup')
+    @staticmethod
+    def notify_all_clients(workspace=None):
+        if workspace is None:
+            rospy.wait_for_service('/vision_master/get_workspace')
+            get_workspace = rospy.ServiceProxy('/vision_master/get_workspace', ros_vision.srv.GetWorkspace)
+            workspace = get_workspace().workspace
 
-        req = ros_vision.srv.CreateFilterGroupRequest()
-        req.name = name
-        create_filtergroup = rospy.ServiceProxy('/vision_master/create_filtergroup', ros_vision.srv.CreateFilterGroup)
-
-        create_filtergroup(req)
-
-    def update_workspace(self, workspace):
-        self.write_message(json.dumps(workspace, cls=MessageEncoder))
+        [client.write_message(json.dumps(workspace, cls=MessageEncoder)) for client in MasterHandler.clients]
 
 class GUI(tornado.web.Application):
     def __init__(self):
@@ -107,7 +110,10 @@ class FiltersHandler(tornado.websocket.WebSocketHandler):
         self.write_message(json.dumps(list_filter_types().filter_list.filters, cls=MessageEncoder))
 
 class LoadHandler(tornado.websocket.WebSocketHandler):
+    clients = set()
+
     def open(self):
+        LoadHandler.clients.add(self)
         rospy.wait_for_service('/vision_master/list_workspaces')
         list_workspaces = rospy.ServiceProxy('/vision_master/list_workspaces', ros_vision.srv.ListWorkspaces)
         self.write_message(json.dumps(list_workspaces().workspaces))
@@ -118,7 +124,10 @@ class LoadHandler(tornado.websocket.WebSocketHandler):
 
         rospy.wait_for_service('/vision_master/load_workspace')
         load_workspace = rospy.ServiceProxy('/vision_master/load_workspace', ros_vision.srv.LoadWorkspace)
-        load_workspace(req)
+        MasterHandler.notify_all_clients(load_workspace(req).workspace)
+
+    def on_close(self):
+        LoadHandler.clients.remove(self)
 
 """class SaveHandler(tornado.websocket.WebSocketHandler):
     def open(self):

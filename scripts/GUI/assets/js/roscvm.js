@@ -22,6 +22,59 @@ var filter_metadata = null;
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
 var parameter = function (name) { return '<div class="form-group"><label for="' + name + '" class="parameter-name control-label">' + name + '</label><div class="input-group"><span class="input-group-btn"><button class="reset-parameter btn btn-default" type="button">Reset</button></span></div></div>'; }
 
+function load_filter_chain(workspace) {
+    // Clean up client
+    jsp.reset();
+    $(".filtergroup").remove();
+
+    // Initialize external inputs
+    for(input_topic_index in workspace.input_topics) {
+        var topic_name = workspace.input_topics[input_topic_index].topic;
+        var topic_type = workspace.input_topics[input_topic_index].type;
+
+        if($("#" + topic_type.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + topic_name + ")").length == 0) {
+            var input = $(topic_input(topic_name)).appendTo("#" + topic_type.split("/").pop().toLowerCase() + "-inputs");
+
+            input.attr("id", topic_name.replace(/\//g, '_'));
+            external_input_sources.push(jsp.makeSource(input,
+                {
+                    anchor: "Right",
+                    scope: topic_type,
+                    connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
+                    connectorStyle: {
+                        strokeStyle: "#0000FF",
+                        lineWidth: 4
+                    }
+                }));
+        }
+    }
+
+    // Initialize filters and filter groups
+    for(group_index in workspace.filter_groups) {
+        var new_filtergroup = $(filtergroup.toString());
+
+        $(".filtergroup-add.bottom").before(new_filtergroup);
+        init_filtergroup(new_filtergroup, {name: workspace.filter_groups[group_index].name});
+
+        for(filter_index in workspace.filter_groups[group_index].filters) {
+            var new_filter = $(filter.toString());
+
+            new_filtergroup.find(".add-filter-container.right").before(new_filter);
+            init_filter(new_filter, workspace.filter_groups[group_index].filters[filter_index]);
+        }
+    }
+
+    // Initialize all connections
+    for(group_index in workspace.filter_groups) {
+        for(filter_index in workspace.filter_groups[group_index].filters) {
+            init_connections(workspace.filter_groups[group_index].filters[filter_index].inputs, workspace.filter_groups[group_index].name, workspace.filter_groups[group_index].filters[filter_index].name);
+        }
+    }
+
+    optimize_filter_positions();
+    pad_filter_groups();
+}
+
 function init_filter_properties(type, description, parameters) {
     $("#filter-type-name").text(type);
     $("#filter-type-description").text(description);
@@ -49,10 +102,14 @@ function init_filter_properties(type, description, parameters) {
                     parameter_container.find("#" + p.name).val(p.default);
 
                     parameter_container.find("#" + p.name).change(function () {
-                        // TODO: Send to Master
+                        // TODO: Send to master
                     });
                 } else {
                     parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
+
+                    parameter_container.find("#" + p.name).on("input", function () {
+                        // TODO: Send to Master
+                    });
                 }
 
                 parameter_container.find(".reset-parameter").click(function() {
@@ -68,6 +125,10 @@ function init_filter_properties(type, description, parameters) {
                     parameter_container.find(".input-group").before($('<div id="' + p.name + '-slider" class="slider"></div>'));
                 }
 
+                parameter_container.find("#" + p.name).on("input", function () {
+                    // TODO: Send to Master
+                });
+
                 parameter_container.find(".reset-parameter").click(function() {
                     $("#" + p.name).val(p.default);
                 });
@@ -79,6 +140,10 @@ function init_filter_properties(type, description, parameters) {
 
                 parameter_container.find(".reset-parameter").click(function() {
                     $("#" + p.name).prop('checked', p.default);
+                });
+
+                parameter_container.find("#" + p.name).change(function () {
+                    // TODO: Send to Master
                 });
                 break;
         }
@@ -376,57 +441,6 @@ jsPlumb.ready(function() {
         jsp.repaintEverything();
     });
 
-    master.onmessage = function(evt) {
-        var workspace = JSON.parse(evt.data);
-
-        // Initialize external inputs
-        for(input_topic_index in workspace.input_topics) {
-            var topic_name = workspace.input_topics[input_topic_index].topic;
-            var topic_type = workspace.input_topics[input_topic_index].type;
-
-            if($("#" + topic_type.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + topic_name + ")").length == 0) {
-                var input = $(topic_input(topic_name)).appendTo("#" + topic_type.split("/").pop().toLowerCase() + "-inputs");
-
-                input.attr("id", topic_name.replace(/\//g, '_'));
-                external_input_sources.push(jsp.makeSource(input,
-                    {
-                        anchor: "Right",
-                        scope: topic_type,
-                        connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
-                        connectorStyle: {
-                            strokeStyle: "#0000FF",
-                            lineWidth: 4
-                        }
-                    }));
-            }
-        }
-
-        // Initialize filters and filter groups
-        for(group_index in workspace.filter_groups) {
-            var new_filtergroup = $(filtergroup.toString());
-
-            $(".filtergroup-add.bottom").before(new_filtergroup);
-            init_filtergroup(new_filtergroup, {name: workspace.filter_groups[group_index].name});
-
-            for(filter_index in workspace.filter_groups[group_index].filters) {
-                var new_filter = $(filter.toString());
-
-                new_filtergroup.find(".add-filter-container.right").before(new_filter);
-                init_filter(new_filter, workspace.filter_groups[group_index].filters[filter_index]);
-            }
-        }
-
-        // Initialize all connections
-        for(group_index in workspace.filter_groups) {
-            for(filter_index in workspace.filter_groups[group_index].filters) {
-                init_connections(workspace.filter_groups[group_index].filters[filter_index].inputs, workspace.filter_groups[group_index].name, workspace.filter_groups[group_index].filters[filter_index].name);
-            }
-        }
-
-        optimize_filter_positions();
-        pad_filter_groups();
-    };
-
     input1.onmessage = function(evt) {
         draw_image("feed1", evt.data);
     };
@@ -460,6 +474,10 @@ jsPlumb.ready(function() {
         $.each(JSON.parse(evt.data), function(i, fc) {
              $("#filterchain-picker").append($("<option></option>").val(fc).text(fc));
         });
+    };
+
+    master.onmessage = function(evt) {
+        load_filter_chain(JSON.parse(evt.data));
     };
 
     $("#load-filterchain").click(function () {

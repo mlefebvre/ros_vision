@@ -9,9 +9,13 @@ class MessageFactory:
     @staticmethod
     def create_workspace_message_from_workspace(workspace):
         w = ros_vision.msg.Workspace()
-        w.name = workspace.name
         w.input_topics = []
         w.filter_groups = []
+
+        if workspace.name is None:
+            w.name = ""
+        else:
+            w.name = workspace.name
 
         for filter_chain_inputs in workspace.input_topics:
             for input_topic in filter_chain_inputs:
