@@ -8,6 +8,7 @@ import tornado.websocket
 import rospy
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import CompressedImage
 import ros_vision.msg
 import ros_vision.srv
 
@@ -126,7 +127,7 @@ class LoadHandler(tornado.websocket.WebSocketHandler):
 rospy.init_node('roscvm_gui')
 
 client_refresh_rate = datetime.timedelta(seconds=rospy.get_param('~input_topic_refresh_rate', 1))
-input_topic_types = rospy.get_param('~input_topic_types', {'sensor_msgs/Image' : Image, 'sensor_msgs/PointCloud2': PointCloud2})
+input_topic_types = rospy.get_param('~input_topic_types', {'sensor_msgs/Image' : Image, 'sensor_msgs/PointCloud2': PointCloud2, 'sensor_msgs/CompressedImage' : CompressedImage})
 
 http_server = tornado.httpserver.HTTPServer(GUI())
 http_server.listen(8888)

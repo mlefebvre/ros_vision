@@ -2,21 +2,103 @@ var jsp = null;
 var external_input_sources = []
 var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
-var filter = '<div class="filter sort-disabled"><div class="filter-header"><div class="input-group"><div class="filter-picker-wrapper input-group-btn"></div><input type="text" class="filter-name form-control"><div class="input-group-btn"><button class="delete-filter btn btn-default glyphicon glyphicon-remove" type="button" /></div></div></div><div class="filter-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
-var filtergroup = '<div class="filtergroup"><div class="filtergroup-header input-group input-group-lg"><span class="filtergroup-name input-group-addon"></span><span class="input-group-btn"><button class="edit-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filtergroup-body well well-sm"><div class="add-filter-container left sort-disabled"><button type="button" class="add-filter left btn btn-default"><span class="glyphicon glyphicon-arrow-right"></span></button></div><div class="add-filter-container right sort-disabled"><button type="button" class="add-filter right btn btn-default"><span class="glyphicon glyphicon-arrow-left"></span></button></div></div></div>';
-var filter_metadata = null;
-var filter_picker = $("<select></select>").addClass("filter-picker selectpicker form-control").change(function() {
-    filter_picker_selection = filter_metadata.filter(function(f) {
-        return f.name == filter_picker_selection;
-    });
+var filter = '<div class="filter sort-disabled panel panel-default"><div class="filter-header panel-heading"><span class="filter-type"></span><span class="filter-name"></span><span class="filter-controls btn-group"><button class="edit-filter btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filter btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filter-body panel-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
+var filter_picker = $('<ul class="dropdown-menu" role="menu"></ul>').on('click', 'li a', function() {
+        var new_filter = $(filter.toString());
 
-    init_filter_inputs($(this).closest(".filter"), filter_picker_selection[0].inputs);
-    init_filter_outputs($(this).closest(".filter"), filter_picker_selection[0].outputs);
+        if($(this).closest(".add-filter-container").hasClass("left")) {
+            $(this).closest(".filtergroup-body").children(".inactive:nth-child(2)").remove();
+            $(this).closest(".add-filter-container").after(new_filter);
+        } else {
+            $(this).closest(".filtergroup-body").children(".inactive:nth-last-child(2)").remove();
+            $(this).closest(".add-filter-container").before(new_filter);
+        }
+
+        init_filter(new_filter);
+        pad_filter_groups();
 });
+var filtergroup = '<div class="filtergroup"><div class="filtergroup-header input-group input-group-lg"><span class="filtergroup-name input-group-addon"></span><span class="input-group-btn"><button class="edit-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filtergroup-body well well-sm"><div class="add-filter-container left sort-disabled btn-group"><button type="button" class="add-filter left btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button></div><div class="add-filter-container right sort-disabled"><button type="button" class="add-filter right btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button></div></div></div>';
+var filter_metadata = null;
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
+var parameter = function (name) { return '<div class="form-group"><label for="' + name + '" class="parameter-name control-label">' + name + '</label><div class="input-group"><span class="input-group-btn"><button class="reset-parameter btn btn-default" type="button">Reset</button></span></div></div>'; }
 
-function init_filter_properties(filter_selector) {
+function init_filter_properties(type, description, parameters) {
+    $("#filter-type-name").text(type);
+    $("#filter-type-description").text(description);
+    $("#filter-properties").empty();
 
+    $.each(parameters, function (i, p) {
+        var parameter_container = $(parameter(p.name));
+
+        switch(p.type) {
+            case "str":
+                // FIXME: This shouldn't be in the "min" parameter...
+                var select_options = null;
+
+                try {
+                    select_options = JSON.parse(p.min.replace(/'/g, "\""));
+                } catch(err) { }
+
+                if($.isArray(select_options)) {
+                    parameter_container.find(".input-group").prepend($('<select id="' + p.name + '" class="parameter-value form-control" />'));
+
+                    $.each(select_options, function (index, option) {
+                        parameter_container.find("#" + p.name).append($("<option>", {text: option, value: option}));
+                    });
+
+                    parameter_container.find("#" + p.name).val(p.default);
+
+                    parameter_container.find("#" + p.name).change(function () {
+                        // TODO: Send to Master
+                    });
+                } else {
+                    parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
+                }
+
+                parameter_container.find(".reset-parameter").click(function() {
+                    $("#" + p.name).val(p.default);
+                });
+                break;
+
+            case "float":
+            case "int":
+                parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
+
+                if($.isNumeric(p.min) && $.isNumeric(p.max)) {
+                    parameter_container.find(".input-group").before($('<div id="' + p.name + '-slider" class="slider"></div>'));
+                }
+
+                parameter_container.find(".reset-parameter").click(function() {
+                    $("#" + p.name).val(p.default);
+                });
+                break;
+
+            case "bool":
+                parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="checkbox" class="parameter-value form-control" />'));
+                $("#" + p.name).prop('checked', p.default);
+
+                parameter_container.find(".reset-parameter").click(function() {
+                    $("#" + p.name).prop('checked', p.default);
+                });
+                break;
+        }
+
+        $("#filter-properties").append(parameter_container);
+
+        if($.isNumeric(p.min) && $.isNumeric(p.max)) {
+            var step = (p.type == "float") ? 0.1 : 1;
+
+            $("#" + p.name + "-slider").slider({
+                value: p.default,
+                min: parseInt(p.min),
+                max: parseInt(p.max),
+                step: step,
+                slide: function( event, ui ) {
+                    $("#" + p.name).val(ui.value);
+                }
+            });
+        }
+    });
 }
 
 function optimize_filter_positions() {
@@ -27,7 +109,7 @@ function optimize_filter_positions() {
             var source_filter = $(endpoint.connections[i].source).closest(".filter");
             var target_filter = $(endpoint.connections[i].target).closest(".filter");
 
-            if(source_filter.closest(".filtergroup").find(".filtergroup-name").val() != target_filter.closest(".filtergroup").find(".filtergroup-name").val()) {
+            if(source_filter.closest(".filtergroup").find(".filtergroup-name").text() != target_filter.closest(".filtergroup").find(".filtergroup-name").text()) {
                 var padding_count = source_filter.index() + 1 - target_filter.index();
 
                 for(var j = 0; j < padding_count; j++) {
@@ -76,12 +158,15 @@ function init_filtergroup(filtergroup_selector, options) {
     var name = options.name || "";
 
     $(filtergroup_selector).find(".filtergroup-name").text(name);
+    $(filtergroup_selector).find(".add-filter-container.left").append($(filter_picker).clone(true));
+    $(filtergroup_selector).find(".add-filter-container.right").append($(filter_picker).clone(true));
+    $(filtergroup_selector).find(".dropdown-menu").last().addClass("pull-right");
 
     $(filtergroup_selector).find(".filtergroup-body").sortable({
         tolerance: "pointer",
         scroll: false,
         items: ".filter",
-        cancel: ".sort-disabled,.filter-picker,.filter-name",
+        cancel: ".sort-disabled",
         connectWith: ".filtergroup-body",
         containment: "#workspace",
         placeholder: "filter-placeholder",
@@ -111,9 +196,8 @@ function init_filter(filter_selector, options) {
 
     update_sortable_filters();
 
-    filter_selector.find(".filter-header > .input-group > .filter-picker-wrapper").prepend($(filter_picker).clone(true));
-    filter_selector.find(".filter-picker").val(type);
-    filter_selector.find(".filter-name").val(name);
+    filter_selector.find(".filter-name").text(name);
+    filter_selector.find(".filter-type").text(type);
 
     if(inputs.length > 0 && outputs.length > 0) {
         init_filter_inputs(filter_selector, inputs);
@@ -121,13 +205,18 @@ function init_filter(filter_selector, options) {
     }
 
     filter_selector.click(function() {
+        var filter_type = $(this).find(".filter-type").text();
+        var filter_info = filter_metadata.filter(function (f) { return f.type == filter_type; })[0];
+
+        $("#properties-container").children().show();
+
         if(selected_filter != null) {
-            selected_filter.removeClass("bg-info");
+            selected_filter.removeClass("selected-filter");
         }
 
-        // TODO: Get filter properties from filter metadata
+        init_filter_properties(filter_info.type, filter_info.description, filter_info.parameters);
 
-        $(this).addClass("bg-info");
+        $(this).addClass("selected-filter");
         selected_filter = $(this);
     });
 
@@ -148,7 +237,7 @@ function init_filter_inputs(filter_selector, inputs) {
     for(i in inputs) {
         jsp.addEndpoint(filter_selector.find(".filter-inputs"),
             {
-                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").val() + "_" + filter_selector.find(".filter-name").val() + "_" + inputs[i].name,
+                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").text() + "_" + filter_selector.find(".filter-name").text() + "_" + inputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (inputs.length + 1)), -1, 0]
             },
             {
@@ -173,7 +262,7 @@ function init_filter_outputs(filter_selector, outputs) {
     for(i in outputs) {
         jsp.addEndpoint(filter_selector.find(".filter-outputs"),
             {
-                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").val() + "_" + filter_selector.find(".filter-name").val() + "_" + outputs[i].name,
+                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").text() + "_" + filter_selector.find(".filter-name").text() + "_" + outputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (outputs.length + 1)), 1, 0]
             },
             {
@@ -278,6 +367,8 @@ jsPlumb.ready(function() {
     var master = new WebSocket("ws://localhost:8888/master/");
     //var save = new WebSocket("ws://localhost:8888/save/");
 
+    $("#properties-container").children().hide();
+
     draw_image("feed1", "None");
     draw_image("feed2", "None");
 
@@ -353,7 +444,7 @@ jsPlumb.ready(function() {
         filter_metadata = JSON.parse(evt.data)
 
         $.each(filter_metadata, function(i, f) {
-             $(filter_picker).append($("<option></option>").val(f.name).text(f.name));
+             $(filter_picker).append($('<li><a href="#">' + f.name + '</a></li>'));
         });
     };
 
@@ -410,22 +501,6 @@ jsPlumb.ready(function() {
 
         $(this).before(new_filtergroup);
         init_filtergroup(new_filtergroup);
-    });
-
-    $("body").on("click", ".add-filter.right", function() {
-        var new_filter = $(filter.toString());
-
-        $(this).before(new_filter);
-        init_filter(new_filter);
-        pad_filter_groups();
-    });
-
-    $("body").on("click", ".add-filter.left", function() {
-        var new_filter = $(filter.toString());
-
-        $(this).after(new_filter);
-        init_filter(new_filter);
-        pad_filter_groups(true);
     });
 
 	jsp = jsPlumb.getInstance({

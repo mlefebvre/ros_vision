@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>ROSCVM</title>
-    <meta charset="utf-8" />
-    <link rel="stylesheet" href="styles/bootstrap.min.css" />
-    <link rel="stylesheet" href="styles/roscvm.css" />
-  <link rel="stylesheet" href="styles/jquery-ui.css">
-    <script src="scripts/jquery-2.1.1.min.js"></script>
-    <script src="scripts/jquery-ui.min.js"></script>
-    <script src="scripts/jquery.jsPlumb-1.7.2-min.js"></script>
-    <script src="scripts/roscvm.js"></script>
-  </head>
+    <head>
+        <title>ROSCVM</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="styles/bootstrap.min.css" />
+        <link rel="stylesheet" href="styles/roscvm.css" />
+        <link rel="stylesheet" href="styles/jquery-ui.css">
+        <script src="scripts/jquery-2.1.1.min.js"></script>
+        <script src="scripts/jquery-ui.min.js"></script>
+        <script src="scripts/bootstrap.min.js"></script>
+        <script src="scripts/jquery.jsPlumb-1.7.2-min.js"></script>
+        <script src="scripts/roscvm.js"></script>
+    </head>
 
     <body>
         <div id="load-dialog" style="display: none" title="Load this filter chain?">
@@ -31,7 +32,14 @@
                     </span>
                 </div>
             </div>
-            <div class="properties-container"></div>
+            <div id="properties-container" class="properties-container panel panel-default">
+                <div id="filter-type-name" class="panel-heading"></div>
+                <div class="panel-body" style="max-height: 190px;overflow-y:scroll;">
+                    <p id="filter-type-description"></p>
+                    <form id="filter-properties" role="form">
+                    </form>
+                </div>
+            </div>
             <div id="feed1-container" class="feed-container">
                 <canvas id="feed1" width="320" height="240"></canvas>
                 <select id="feed1-topics" class="topic-selector"></select>
@@ -54,10 +62,9 @@
                 </div>
             </div>
             <div id="workspace" class="workspace">
-                <div class="filtergroup-add top">Add △</div>
-                <div class="filtergroup-add bottom">Add ▽</div>
+                <button type="button" class="filtergroup-add top btn btn-default"><span class="glyphicon glyphicon-plus"></span></button>
+                <button type="button" class="filtergroup-add bottom btn btn-default"><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
-
     </body>
 </html>

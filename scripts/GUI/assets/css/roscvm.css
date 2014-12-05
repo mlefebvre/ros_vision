@@ -15,13 +15,13 @@
     height: 240px;
     width: 100%;
     z-index: 15;
+    background-color: #ffffff;
 }
 
 .gui-body {
     position: absolute;
     min-width: 100%;
     top: 240px;
-    border: 2px solid pink;
 }
 
 .inputs-container {
@@ -52,8 +52,10 @@
 .properties-container {
     position: relative;
     height: 240px;
-    width: calc(100% - 940px);
+    width: calc(100% - 950px);
     float: left;
+    margin-right: 5px;
+    margin-left: 5px;
     background-color: #ffffff;
 }
 
@@ -88,9 +90,9 @@ canvas {
 
 .filtergroup-add {
     position: relative;
-    height: 25px;
+    height: 40px;
+    width: 100%;
     text-align: center;
-    border: 2px solid blue;
 }
 
 .filtergroup {
@@ -120,7 +122,6 @@ canvas {
     height: 250px;
     width: 500px;
     margin: 0px 10px 0px 10px;
-    border: 2px solid greenyellow;
 }
 
 .filter-placeholder {
@@ -132,10 +133,20 @@ canvas {
     background-color: #bce8f1;
 }
 
+.selected-filter {
+   border-color: #66AFE9;
+   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(102, 175, 233, 0.6);
+   outline: 0 none;
+}
+
 .filter-header {
     position: relative;
     height: 50px;
-    border: 2px solid green;
+}
+
+.filter-controls {
+    position: relative;
+    float: right;
 }
 
 .filter-picker-wrapper, .filter-picker {
@@ -143,43 +154,41 @@ canvas {
     width: 200px;
 }
 
-.filter-name {
-    height: 50px;
-    width: 250px;
+.filter-type {
+    display: none;
 }
 
-.delete-filter {
+.filter-name {
+    position: relative;
+    float: left;
     height: 50px;
-    width: 50px;
+    text-align: left;
 }
 
 .filter-body {
     position: relative;
     height: 200px;
-    border: 2px solid yellow;
 }
 
 .filter-inputs {
     position: relative;
-    height: 200px;
+    float: left;
+    height: 100%;;
     width: 50%;
-    display: inline-block;
-    border: 2px solid #000000;
+    border-right: 1px dotted slategrey;
 }
 
 .filter-outputs {
     position: relative;
-    height: 200px;
+    float: left;
+    height: 100%;
     width: 50%;
-    display: inline-block;
-    border: 2px solid #000000;
 }
 
 .add-filter-container {
     position: relative;
     display: inline-block;
     width: 60px;
-    height: 250px;
     vertical-align: top;
 }
 
@@ -190,4 +199,12 @@ canvas {
 
 .inactive {
     visibility: hidden;
+}
+
+#filter-properties {
+    margin: 0px 10px 0px 10px;
+}
+
+.slider {
+    margin-bottom: 10px;
 }
