@@ -25,10 +25,28 @@ class MasterHandler(tornado.websocket.WebSocketHandler):
 
     def open(self):
         MasterHandler.clients.add(self)
+        MasterHandler.notify_all_clients()
 
-        rospy.wait_for_service('/vision_master/get_workspace')
-        get_workspace = rospy.ServiceProxy('/vision_master/get_workspace', ros_vision.srv.GetWorkspace)
-        self.write_message(json.dumps(get_workspace().workspace, cls=MessageEncoder))
+    def on_message(self, message):
+        parameter = json.loads(message)["parameter"]
+        service_name = '/%s/set_parameter' % parameter["filter_group_name"]
+
+        req = ros_vision.srv.SetParameterValueRequest()
+        req.filter_name = parameter["filter_name"]
+        req.parameter_name = parameter["parameter_name"]
+        req.parameter_value = str(parameter["parameter_value"])
+
+        rospy.wait_for_service(service_name)
+        set_parameter_value = rospy.ServiceProxy(service_name, ros_vision.srv.SetParameterValue)
+        set_parameter_value(req)
+
+        [client.write_message(json.dumps({
+            "update":
+                {
+                    "id": "#" + parameter["parameter_name"],
+                    "value": str(parameter["parameter_value"])
+                }
+            })) for client in self.clients]
 
     def on_close(self):
         MasterHandler.clients.remove(self)

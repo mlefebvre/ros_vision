@@ -56,8 +56,9 @@ class Filter:
         return
 
     def set_param(self, name, value):
-        print "Param: ", name, value
-        self._params[name] = value
+        type = filter(lambda p: p.get_name() == name, self.descriptor.get_parameters())[0].get_type()
+
+        self._params[name] = type(value)
 
     def get_param(self, name):
         return self._params[name]

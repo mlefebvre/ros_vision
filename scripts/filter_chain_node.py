@@ -30,12 +30,27 @@ def create_filter(req):
 
     return ros_vision.srv.CreateFilterResponse()
 
+def set_parameter(req):
+    fc.set_param(req.filter_name + "/" + req.parameter_name, req.parameter_value)
+
+    return ros_vision.srv.SetParameterValueResponse()
+
+def get_parameter(req):
+    res = ros_vision.srv.GetParameterValueResponse()
+    res.value = str(fc.get_param(req.filter_name + "/" + req.parameter_name))
+
+    return res
+
 rospy.init_node('filter_chain_node')
 
 fc = FilterChain()
 
 create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFilter, create_filter)
+set_parameter_service = rospy.Service('~set_parameter', ros_vision.srv.SetParameterValue, set_parameter)
+get_parameter_service = rospy.Service('~get_parameter', ros_vision.srv.GetParameterValue, get_parameter)
+
 filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size=1, latch=True)
+
 max_rate = rospy.Rate(30)
 io_manager = IOManager()
 io_manager.run()

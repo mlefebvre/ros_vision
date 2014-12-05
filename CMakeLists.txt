@@ -34,11 +34,13 @@ add_service_files(
    CreateFilterGroup.srv
    DeleteFilter.srv
    DeleteFilterGroup.srv
+   GetParameterValue.srv
    GetWorkspace.srv
    ListFilterTypes.srv
    ListWorkspaces.srv
    LoadWorkspace.srv
    SaveWorkspace.srv
+   SetParameterValue.srv
  )
  
 generate_messages(

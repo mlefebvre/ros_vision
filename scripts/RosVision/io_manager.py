@@ -1,5 +1,4 @@
 import rospy
-from ros_vision.msg import Workspace
 from threading import Lock
 
 

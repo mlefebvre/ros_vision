@@ -16,6 +16,13 @@ class FilterChain:
         else:
             pass
 
+    def get_param(self, name):
+        n = name.split("/")
+        if n[0] in self._filters:
+            return self._filters[n[0]].get_param(n[1])
+        else:
+            pass
+
     def create_filter(self, name, filter_type, params={}):
         f = FilterFactory.create_filter(name, filter_type, params)
         self._filters[name] = f

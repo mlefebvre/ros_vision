@@ -1,4 +1,5 @@
 var jsp = null;
+var master = new WebSocket("ws://" + window.location.hostname + ":8888/master/");
 var external_input_sources = []
 var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
@@ -75,7 +76,7 @@ function load_filter_chain(workspace) {
     pad_filter_groups();
 }
 
-function init_filter_properties(type, description, parameters) {
+function init_filter_properties(filter_name, filter_group_name, type, description, parameters) {
     $("#filter-type-name").text(type);
     $("#filter-type-description").text(description);
     $("#filter-properties").empty();
@@ -85,9 +86,9 @@ function init_filter_properties(type, description, parameters) {
 
         switch(p.type) {
             case "str":
-                // FIXME: This shouldn't be in the "min" parameter...
                 var select_options = null;
 
+                // FIXME: This shouldn't be in the "min" parameter...
                 try {
                     select_options = JSON.parse(p.min.replace(/'/g, "\""));
                 } catch(err) { }
@@ -99,16 +100,34 @@ function init_filter_properties(type, description, parameters) {
                         parameter_container.find("#" + p.name).append($("<option>", {text: option, value: option}));
                     });
 
-                    parameter_container.find("#" + p.name).val(p.default);
-
                     parameter_container.find("#" + p.name).change(function () {
-                        // TODO: Send to master
+                        master.send(JSON.stringify(
+                            {
+                                "parameter" :
+                                {
+                                    "filter_name": filter_name,
+                                    "filter_group_name": filter_group_name,
+                                    "parameter_name" : p.name,
+                                    "parameter_value" : $(this).val()
+                                }
+                            }
+                        ));
                     });
                 } else {
                     parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
 
                     parameter_container.find("#" + p.name).on("input", function () {
-                        // TODO: Send to Master
+                        master.send(JSON.stringify(
+                            {
+                                "parameter" :
+                                {
+                                    "filter_name": filter_name,
+                                    "filter_group_name": filter_group_name,
+                                    "parameter_name" : p.name,
+                                    "parameter_value" : $(this).val()
+                                }
+                            }
+                        ));
                     });
                 }
 
@@ -126,7 +145,21 @@ function init_filter_properties(type, description, parameters) {
                 }
 
                 parameter_container.find("#" + p.name).on("input", function () {
-                    // TODO: Send to Master
+                    if($.isNumeric($(this).val())) {
+                        $("#" + p.name + "-slider").slider("value", $(this).val());
+
+                        master.send(JSON.stringify(
+                            {
+                                "parameter" :
+                                {
+                                    "filter_name": filter_name,
+                                    "filter_group_name": filter_group_name,
+                                    "parameter_name" : p.name,
+                                    "parameter_value" : $(this).val()
+                                }
+                            }
+                        ));
+                    }
                 });
 
                 parameter_container.find(".reset-parameter").click(function() {
@@ -136,19 +169,29 @@ function init_filter_properties(type, description, parameters) {
 
             case "bool":
                 parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="checkbox" class="parameter-value form-control" />'));
-                $("#" + p.name).prop('checked', p.default);
 
                 parameter_container.find(".reset-parameter").click(function() {
                     $("#" + p.name).prop('checked', p.default);
                 });
 
                 parameter_container.find("#" + p.name).change(function () {
-                    // TODO: Send to Master
+                    master.send(JSON.stringify(
+                        {
+                            "parameter" :
+                            {
+                                "filter_name": filter_name,
+                                "filter_group_name": filter_group_name,
+                                "parameter_name" : p.name,
+                                "parameter_value" : $(this).val()
+                            }
+                        }
+                    ));
                 });
                 break;
         }
 
         $("#filter-properties").append(parameter_container);
+        $("#" + p.name).val(p.default);
 
         if($.isNumeric(p.min) && $.isNumeric(p.max)) {
             var step = (p.type == "float") ? 0.1 : 1;
@@ -160,6 +203,17 @@ function init_filter_properties(type, description, parameters) {
                 step: step,
                 slide: function( event, ui ) {
                     $("#" + p.name).val(ui.value);
+                    master.send(JSON.stringify(
+                        {
+                            "parameter" :
+                            {
+                                "filter_name": filter_name,
+                                "filter_group_name": filter_group_name,
+                                "parameter_name" : p.name,
+                                "parameter_value" : ui.value
+                            }
+                        }
+                    ));
                 }
             });
         }
@@ -279,7 +333,7 @@ function init_filter(filter_selector, options) {
             selected_filter.removeClass("selected-filter");
         }
 
-        init_filter_properties(filter_info.type, filter_info.description, filter_info.parameters);
+        init_filter_properties(name, filter_selector.closest(".filtergroup").find(".filtergroup-name").text(), filter_info.type, filter_info.description, filter_info.parameters);
 
         $(this).addClass("selected-filter");
         selected_filter = $(this);
@@ -424,13 +478,11 @@ function update_topic_list(topic_selector_id, data) {
 }
 
 jsPlumb.ready(function() {
-    var input1 = new WebSocket("ws://localhost:8888/input1/");
-    var input2 = new WebSocket("ws://localhost:8888/input2/");
-    var topics = new WebSocket("ws://localhost:8888/topics/");
-    var filters = new WebSocket("ws://localhost:8888/filters/");
-    var load = new WebSocket("ws://localhost:8888/load/");
-    var master = new WebSocket("ws://localhost:8888/master/");
-    //var save = new WebSocket("ws://localhost:8888/save/");
+    var input1 = new WebSocket("ws://" + window.location.hostname + ":8888/input1/");
+    var input2 = new WebSocket("ws://" + window.location.hostname + ":8888/input2/");
+    var topics = new WebSocket("ws://" + window.location.hostname + ":8888/topics/");
+    var filters = new WebSocket("ws://" + window.location.hostname + ":8888/filters/");
+    var load = new WebSocket("ws://" + window.location.hostname + ":8888/load/");
 
     $("#properties-container").children().hide();
 
@@ -477,7 +529,14 @@ jsPlumb.ready(function() {
     };
 
     master.onmessage = function(evt) {
-        load_filter_chain(JSON.parse(evt.data));
+        var data = JSON.parse(evt.data);
+
+        if("update" in data) {
+            $(data.update.id).val(data.update.value);
+            $(data.update.id + "-slider").slider("value", data.update.value);
+        } else {
+            load_filter_chain(data);
+        }
     };
 
     $("#load-filterchain").click(function () {
