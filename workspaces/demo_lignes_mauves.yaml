@@ -22,7 +22,14 @@ line_detector:
     min_area: 20
     kernel_height: 5
     kernel_width: 5
-  mask:
-    type: Mask
-    input: uncompress/output
-    mask: pfilter/output
+  perspective:
+    type: PerspectiveTransform
+    input: pfilter/output
+  resize:
+    type: ResizeRatio
+    input: perspective/output
+    width: 20
+    height: 20
+  topc:
+    type: BitwiseToPointCloud
+    input: resize/output
