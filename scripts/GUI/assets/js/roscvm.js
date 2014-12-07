@@ -1,287 +1,157 @@
+var padding = $('<div class="filter inactive sort-disabled panel panel-default"></div>');
 var jsp = null;
+var filter_types = new WebSocket("ws://" + window.location.hostname + ":8888/filters/");
 var master = new WebSocket("ws://" + window.location.hostname + ":8888/master/");
-var external_input_sources = []
-var selected_filter = null;
 var selected_topic = {"feed1": "None", "feed2": "None"};
-var filter = '<div class="filter sort-disabled panel panel-default"><div class="filter-header panel-heading"><span class="filter-type"></span><span class="filter-name"></span><span class="filter-controls btn-group"><button class="edit-filter btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filter btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filter-body panel-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>';
-var filter_picker = $('<ul class="dropdown-menu" role="menu"></ul>').on('click', 'li a', function() {
-        var new_filter = $(filter.toString());
-
-        if($(this).closest(".add-filter-container").hasClass("left")) {
-            $(this).closest(".filtergroup-body").children(".inactive:nth-child(2)").remove();
-            $(this).closest(".add-filter-container").after(new_filter);
-        } else {
-            $(this).closest(".filtergroup-body").children(".inactive:nth-last-child(2)").remove();
-            $(this).closest(".add-filter-container").before(new_filter);
-        }
-
-        init_filter(new_filter);
-        pad_filter_groups();
-});
-var filtergroup = '<div class="filtergroup"><div class="filtergroup-header input-group input-group-lg"><span class="filtergroup-name input-group-addon"></span><span class="input-group-btn"><button class="edit-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filtergroup-body well well-sm"><div class="add-filter-container left sort-disabled btn-group"><button type="button" class="add-filter left btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button></div><div class="add-filter-container right sort-disabled"><button type="button" class="add-filter right btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button></div></div></div>';
 var filter_metadata = null;
 var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
-var parameter = function (name) { return '<div class="form-group"><label for="' + name + '" class="parameter-name control-label">' + name + '</label><div class="input-group"><span class="input-group-btn"><button class="reset-parameter btn btn-default" type="button">Reset</button></span></div></div>'; }
 
-function load_filter_chain(workspace) {
-    // Clean up client
-    jsp.reset();
-    $(".filtergroup").remove();
-
-    // Initialize external inputs
-    for(input_topic_index in workspace.input_topics) {
-        var topic_name = workspace.input_topics[input_topic_index].topic;
-        var topic_type = workspace.input_topics[input_topic_index].type;
-
-        if($("#" + topic_type.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + topic_name + ")").length == 0) {
-            var input = $(topic_input(topic_name)).appendTo("#" + topic_type.split("/").pop().toLowerCase() + "-inputs");
-
-            input.attr("id", topic_name.replace(/\//g, '_'));
-            external_input_sources.push(jsp.makeSource(input,
-                {
-                    anchor: "Right",
-                    scope: topic_type,
-                    connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
-                    connectorStyle: {
-                        strokeStyle: "#0000FF",
-                        lineWidth: 4
-                    }
-                }));
-        }
+///////////////////////////////////////////////////////////////////////////////
+//                            ACCESSOR FUNCTIONS                             //
+///////////////////////////////////////////////////////////////////////////////
+function filtergroups(filter_group_name) {
+    if(filter_group_name == undefined || /^\s*$/.test(filter_group_name)) {
+        return $('.filtergroup');
+    } else {
+        return $('.filtergroup').filter(function () {
+            return $(this).find(".filtergroup-name").text() === filter_group_name;
+        });
     }
-
-    // Initialize filters and filter groups
-    for(group_index in workspace.filter_groups) {
-        var new_filtergroup = $(filtergroup.toString());
-
-        $(".filtergroup-add.bottom").before(new_filtergroup);
-        init_filtergroup(new_filtergroup, {name: workspace.filter_groups[group_index].name});
-
-        for(filter_index in workspace.filter_groups[group_index].filters) {
-            var new_filter = $(filter.toString());
-
-            new_filtergroup.find(".add-filter-container.right").before(new_filter);
-            init_filter(new_filter, workspace.filter_groups[group_index].filters[filter_index]);
-        }
-    }
-
-    // Initialize all connections
-    for(group_index in workspace.filter_groups) {
-        for(filter_index in workspace.filter_groups[group_index].filters) {
-            init_connections(workspace.filter_groups[group_index].filters[filter_index].inputs, workspace.filter_groups[group_index].name, workspace.filter_groups[group_index].filters[filter_index].name);
-        }
-    }
-
-    optimize_filter_positions();
-    pad_filter_groups();
 }
 
-function init_filter_properties(filter_name, filter_group_name, type, description, parameters) {
-    $("#filter-type-name").text(type);
-    $("#filter-type-description").text(description);
-    $("#filter-properties").empty();
-
-    $.each(parameters, function (i, p) {
-        var parameter_container = $(parameter(p.name));
-
-        switch(p.type) {
-            case "str":
-                var select_options = null;
-
-                // FIXME: This shouldn't be in the "min" parameter...
-                try {
-                    select_options = JSON.parse(p.min.replace(/'/g, "\""));
-                } catch(err) { }
-
-                if($.isArray(select_options)) {
-                    parameter_container.find(".input-group").prepend($('<select id="' + p.name + '" class="parameter-value form-control" />'));
-
-                    $.each(select_options, function (index, option) {
-                        parameter_container.find("#" + p.name).append($("<option>", {text: option, value: option}));
-                    });
-
-                    parameter_container.find("#" + p.name).change(function () {
-                        master.send(JSON.stringify(
-                            {
-                                "parameter" :
-                                {
-                                    "filter_name": filter_name,
-                                    "filter_group_name": filter_group_name,
-                                    "parameter_name" : p.name,
-                                    "parameter_value" : $(this).val()
-                                }
-                            }
-                        ));
-                    });
-                } else {
-                    parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
-
-                    parameter_container.find("#" + p.name).on("input", function () {
-                        master.send(JSON.stringify(
-                            {
-                                "parameter" :
-                                {
-                                    "filter_name": filter_name,
-                                    "filter_group_name": filter_group_name,
-                                    "parameter_name" : p.name,
-                                    "parameter_value" : $(this).val()
-                                }
-                            }
-                        ));
-                    });
-                }
-
-                parameter_container.find(".reset-parameter").click(function() {
-                    $("#" + p.name).val(p.default);
-                });
-                break;
-
-            case "float":
-            case "int":
-                parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
-
-                if($.isNumeric(p.min) && $.isNumeric(p.max)) {
-                    parameter_container.find(".input-group").before($('<div id="' + p.name + '-slider" class="slider"></div>'));
-                }
-
-                parameter_container.find("#" + p.name).on("input", function () {
-                    if($.isNumeric($(this).val())) {
-                        $("#" + p.name + "-slider").slider("value", $(this).val());
-
-                        master.send(JSON.stringify(
-                            {
-                                "parameter" :
-                                {
-                                    "filter_name": filter_name,
-                                    "filter_group_name": filter_group_name,
-                                    "parameter_name" : p.name,
-                                    "parameter_value" : $(this).val()
-                                }
-                            }
-                        ));
-                    }
-                });
-
-                parameter_container.find(".reset-parameter").click(function() {
-                    $("#" + p.name).val(p.default);
-                });
-                break;
-
-            case "bool":
-                parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="checkbox" class="parameter-value form-control" />'));
-
-                parameter_container.find(".reset-parameter").click(function() {
-                    $("#" + p.name).prop('checked', p.default);
-                });
-
-                parameter_container.find("#" + p.name).change(function () {
-                    master.send(JSON.stringify(
-                        {
-                            "parameter" :
-                            {
-                                "filter_name": filter_name,
-                                "filter_group_name": filter_group_name,
-                                "parameter_name" : p.name,
-                                "parameter_value" : $(this).val()
-                            }
-                        }
-                    ));
-                });
-                break;
-        }
-
-        $("#filter-properties").append(parameter_container);
-        $("#" + p.name).val(p.default);
-
-        if($.isNumeric(p.min) && $.isNumeric(p.max)) {
-            var step = (p.type == "float") ? 0.1 : 1;
-
-            $("#" + p.name + "-slider").slider({
-                value: p.default,
-                min: parseInt(p.min),
-                max: parseInt(p.max),
-                step: step,
-                slide: function( event, ui ) {
-                    $("#" + p.name).val(ui.value);
-                    master.send(JSON.stringify(
-                        {
-                            "parameter" :
-                            {
-                                "filter_name": filter_name,
-                                "filter_group_name": filter_group_name,
-                                "parameter_name" : p.name,
-                                "parameter_value" : ui.value
-                            }
-                        }
-                    ));
-                }
-            });
-        }
-    });
+function filters(filter_group_name, filter_name) {
+    if(filter_name == undefined || /^\s*$/.test(filter_name)) {
+        return filtergroups(filter_group_name).find('.filtergroup-body').children('.filter');
+    } else {
+        return filtergroups(filter_group_name).find('.filtergroup-body').find('.filter-name:contains("' + filter_name + '")').closest(".filter");
+    }
 }
 
-function optimize_filter_positions() {
-    $(".filter.inactive").remove();
-
-    jsp.selectEndpoints().each(function(endpoint) {
-        for(i in endpoint.connections) {
-            var source_filter = $(endpoint.connections[i].source).closest(".filter");
-            var target_filter = $(endpoint.connections[i].target).closest(".filter");
-
-            if(source_filter.closest(".filtergroup").find(".filtergroup-name").text() != target_filter.closest(".filtergroup").find(".filtergroup-name").text()) {
-                var padding_count = source_filter.index() + 1 - target_filter.index();
-
-                for(var j = 0; j < padding_count; j++) {
-                    var new_filter = $(filter.toString());
-
-                    target_filter.before(new_filter)
-                    init_filter(new_filter, {"visible": false});
-                }
-            }
-        }
-    });
-}
-
-function pad_filter_groups(add_before) {
-    var filter_groups = [];
-    var filter_count = 0;
-    var add_before = (add_before === undefined) ? false : add_before;
+function max_padding() {
+    var groups = []
 
     $(".filtergroup-body").map(function (i) {
-        filter_groups[i] = $(this).children().length;
+        groups[i] = $(this).children().length;
     });
 
-    filter_count = Math.max.apply(Math, filter_groups) - 2;
-
-    $.each($(".filtergroup-body"), function(i) {
-        var filters_to_add = filter_count - ($(this).children().length - 2);
-
-        if(filters_to_add > 0) {
-            for(var j = 0; j < filters_to_add; j++) {
-                var new_filter = $(filter.toString());
-
-                if(add_before) {
-                    $(this).find(".add-filter-container.left").after(new_filter);
-                } else {
-                    $(this).find(".add-filter-container.right").before(new_filter);
-                }
-
-                init_filter(new_filter, {"visible": false});
-            }
-        }
-    });
+    return Math.max.apply(Math, groups) - 2;
 }
 
-function init_filtergroup(filtergroup_selector, options) {
-    var options = options || {};
-    var name = options.name || "";
+///////////////////////////////////////////////////////////////////////////////
+//                        DOM MODIFICATION FUNCTIONS                         //
+///////////////////////////////////////////////////////////////////////////////
 
-    $(filtergroup_selector).find(".filtergroup-name").text(name);
-    $(filtergroup_selector).find(".add-filter-container.left").append($(filter_picker).clone(true));
-    $(filtergroup_selector).find(".add-filter-container.right").append($(filter_picker).clone(true));
-    $(filtergroup_selector).find(".dropdown-menu").last().addClass("pull-right");
+function create_filter_group(filter_group_name, position) {
+    var new_filter_group = $('<div class="filtergroup"><div class="filtergroup-header input-group input-group-lg"><span class="filtergroup-name input-group-addon"></span><span class="input-group-btn"><button class="edit-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filtergroup btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filtergroup-body well well-sm"><div class="add-filter-container left sort-disabled btn-group"><button type="button" class="add-filter left btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button></div><div class="add-filter-container right sort-disabled"><button type="button" class="add-filter right btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button></div></div></div>');
 
-    $(filtergroup_selector).find(".filtergroup-body").sortable({
+    var filter_picker = $('<ul class="dropdown-menu" role="menu"></ul>').on('click', 'li a', function() {
+        var type = $(this).text();
+        var position = 1;
+        var add_filter_button = $(this).closest(".add-filter-container");
+
+        if($(this).closest(".add-filter-container").prop("class").split(" ").indexOf("right") > -1) {
+            position = filters(filter_group_name).size() + 1;
+        }
+
+        $("#edit-filter-name").off("input");
+        $("#edit-filter-name").on("input", function() {
+            var filter_names = new_filter_group.find(".filter-name").map(function() { return $(this).text(); }).get();
+
+            if($.trim($(this).val()) == "" || $.inArray($(this).val().replace(/\s+/g, "-").toLowerCase(), filter_names) > -1) {
+                $(".ui-dialog-buttonpane button:contains('Filter')").button("disable");
+            } else {
+                $(".ui-dialog-buttonpane button:contains('Filter')").button("enable");
+            }
+        });
+
+        $( "#filter-dialog" ).dialog({
+            resizable: false,
+            height: 220,
+            modal: true,
+            buttons: {
+                "Add Filter": function() {
+                    var order = 0;
+
+                    create_filter(filter_group_name, $("#edit-filter-name").val(), type, {}, position);
+
+                    filters(filter_group_name).each(function() {
+                        if($(this).find(".filter-name").text() === $("#edit-filter-name").val()) return false;
+                        order++;
+                    });
+
+                    $(this).dialog( "close" );
+                    send_create_filter(filter_group_name, $("#edit-filter-name").val(), type, order);
+                },
+                Cancel: function() {
+                    $("#edit-filter-name").val("");
+                    $(this).dialog( "close" );
+                }
+            }
+        });
+
+        $("#edit-filter-name").val("");
+        $(".ui-dialog-buttonpane button:contains('Add Filter')").button("disable");
+    });
+
+    $.each(filter_metadata, function(i, f) {
+         $(filter_picker).append($('<li><a href="#">' + f.name + '</a></li>'));
+    });
+
+    position = default_value(position, $("#workspace").children().size() - 1);
+    insert_at($("#workspace"), new_filter_group, position);
+
+    for(var i = 0; i < max_padding(); i++) {
+        insert_at(new_filter_group.find(".filtergroup-body"), padding.clone(), 0);
+    }
+
+    new_filter_group.find(".filtergroup-name").text(filter_group_name);
+    new_filter_group.find(".add-filter-container.left").append($(filter_picker).clone(true));
+    new_filter_group.find(".add-filter-container.right").append($(filter_picker).clone(true));
+    new_filter_group.find(".dropdown-menu").last().addClass("pull-right");
+
+    // Edit Filter Group
+    new_filter_group.find(".edit-filtergroup").click(function () {
+        $(".ui-dialog-buttonpane button:contains('Edit Filter Group')").button("enable");
+
+        $("#edit-filtergroup-name").off("input");
+        $("#edit-filtergroup-name").on("input", function() {
+            var filtergroup_names = $(".filtergroup-name").map(function() { return $(this).text(); }).get();
+
+            filtergroup_names.splice(filtergroup_names.indexOf(filter_group_name), 1);
+
+            if($.trim($(this).val()) == "" || $.inArray($(this).val().replace(/\s+/g, "-").toLowerCase(), filtergroup_names) > -1) {
+                $(".ui-dialog-buttonpane button:contains('Filter Group')").button("disable");
+            } else {
+                $(".ui-dialog-buttonpane button:contains('Filter Group')").button("enable");
+            }
+        });
+
+        $( "#filtergroup-dialog" ).dialog({
+            resizable: false,
+            height: 220,
+            modal: true,
+            buttons: {
+                "Edit Filter Group": function() {
+                    send_edit_filter_group(filter_group_name, { "name": $("#edit-filtergroup-name").val() });
+                    new_filter_group.find(".filtergroup-name").text($("#edit-filtergroup-name").val());
+                    $(this).dialog( "close" );
+                },
+                Cancel: function() {
+                    $("#edit-filtergroup-name").val("");
+                    $(this).dialog( "close" );
+                }
+            }
+        });
+
+        $("#edit-filtergroup-name").val(filter_group_name);
+    });
+
+    // Delete Filter Group
+    new_filter_group.find(".delete-filtergroup").click(function () {
+        remove_filter_group(filter_group_name);
+    });
+
+    new_filter_group.find(".filtergroup-body").sortable({
         tolerance: "pointer",
         scroll: false,
         items: ".filter",
@@ -291,72 +161,71 @@ function init_filtergroup(filtergroup_selector, options) {
         placeholder: "filter-placeholder",
         sort: function(event, ui) {
             update_sortable_filters();
+            jsp.repaintEverything();
         },
         stop: function(event, ui) {
             update_sortable_filters();
+            jsp.repaintEverything();
         },
         update: function(event, ui) {
             update_sortable_filters();
             ui.item.closest(".filtergroup-body").children(".inactive").last().remove();
-            pad_filter_groups();
+            jsp.repaintEverything();
+            //FIX ME PADDING
         }
     });
 
-    pad_filter_groups();
+    jsp.repaintEverything();
 }
 
-function init_filter(filter_selector, options) {
-    var options = options || {};
-    var visible = (options.visible === undefined) ? true : options.visible;
-    var name = options.name || "";
-    var type = options.type || "";
-    var inputs = options.inputs || [];
-    var outputs = options.outputs || [];
+function remove_filter_group(filter_group_name) {
+    filtergroups(filter_group_name).find(".filter-inputs").each(function (index) {
+        jsp.removeAllEndpoints($(this));
+    });
+
+    filtergroups(filter_group_name).find(".filter-outputs").each(function (index) {
+        jsp.removeAllEndpoints($(this));
+    });
+
+    filtergroups(filter_group_name).remove();
+
+    jsp.repaintEverything();
+    send_remove_filter_group(filter_group_name);
+}
+
+function create_filter(filter_group_name, filter_name, type, options, position) {
+    var new_filter = $('<div class="filter sort-disabled panel panel-default"><div class="filter-header panel-heading"><span class="filter-type"></span><span class="filter-name"></span><span class="filter-controls btn-group"><button class="edit-filter btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filter btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filter-body panel-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>');
+    var filter_info = filter_metadata.filter(function (f) { return f.type == type; })[0];
+    var description = default_value(options.description, filter_info.description);
+    var inputs = default_value(options.inputs, filter_info.inputs);
+    var outputs = default_value(options.outputs, filter_info.outputs);
+    var parameters = default_value(options.parameters, filter_info.parameters);
+
+    position = default_value(position, filtergroups(filter_group_name).find(".filtergroup-body").children().size() - 1);
+
+    if(filtergroups(filter_group_name).find(".filtergroup-body").children(":nth-child(" + position + ")").hasClass("inactive")) {
+        filtergroups(filter_group_name).find(".filtergroup-body").children(":nth-child(" + position + ")").remove();
+        position--;
+    }
+
+    insert_at(filtergroups(filter_group_name).find(".filtergroup-body"), new_filter, position);
+
+    $('.filtergroup-name:not(:contains("' + filter_group_name + '"))').closest(".filtergroup").find(".filtergroup-body").each(function(index, element) {
+        for(var i = 0; i < filtergroups(filter_group_name).find(".filtergroup-body").children().length - $(element).children().length; i++) {
+            insert_at($(element), padding.clone(), $(element).children().length - 1);
+        }
+    });
 
     update_sortable_filters();
 
-    filter_selector.find(".filter-name").text(name);
-    filter_selector.find(".filter-type").text(type);
+    new_filter.find(".filter-name").text(filter_name);
+    new_filter.find(".filter-type").text(type);
 
-    if(inputs.length > 0 && outputs.length > 0) {
-        init_filter_inputs(filter_selector, inputs);
-        init_filter_outputs(filter_selector, outputs);
-    }
-
-    filter_selector.click(function() {
-        var filter_type = $(this).find(".filter-type").text();
-        var filter_info = filter_metadata.filter(function (f) { return f.type == filter_type; })[0];
-
-        $("#properties-container").children().show();
-
-        if(selected_filter != null) {
-            selected_filter.removeClass("selected-filter");
-        }
-
-        init_filter_properties(name, filter_selector.closest(".filtergroup").find(".filtergroup-name").text(), filter_info.type, filter_info.description, filter_info.parameters);
-
-        $(this).addClass("selected-filter");
-        selected_filter = $(this);
-    });
-
-    filter_selector.find(".delete-filter").click(function () {
-        //TODO: Add modal confirmation
-        remove_filter(filter_selector);
-    });
-
-    if(!visible) {
-        filter_selector.addClass("inactive")
-    }
-}
-
-function init_filter_inputs(filter_selector, inputs) {
-
-    jsp.removeAllEndpoints(filter_selector.find(".filter-inputs"));
-
+    // Initialize Filter Inputs
     for(i in inputs) {
-        jsp.addEndpoint(filter_selector.find(".filter-inputs"),
+        jsp.addEndpoint(new_filter.find(".filter-inputs"),
             {
-                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").text() + "_" + filter_selector.find(".filter-name").text() + "_" + inputs[i].name,
+                uuid: "_" + filter_group_name + "_" + filter_name + "_" + inputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (inputs.length + 1)), -1, 0]
             },
             {
@@ -372,16 +241,12 @@ function init_filter_inputs(filter_selector, inputs) {
             }
         );
     }
-}
 
-function init_filter_outputs(filter_selector, outputs) {
-
-    jsp.removeAllEndpoints(filter_selector.find(".filter-outputs"));
-
+    // Initialize Filter Outputs
     for(i in outputs) {
-        jsp.addEndpoint(filter_selector.find(".filter-outputs"),
+        jsp.addEndpoint(new_filter.find(".filter-outputs"),
             {
-                uuid: "_" + filter_selector.closest(".filtergroup").find(".filtergroup-name").text() + "_" + filter_selector.find(".filter-name").text() + "_" + outputs[i].name,
+                uuid: "_" + filter_group_name + "_" + filter_name + "_" + outputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (outputs.length + 1)), 1, 0]
             },
             {
@@ -404,30 +269,326 @@ function init_filter_outputs(filter_selector, outputs) {
             }
         );
     }
-}
 
-function init_connections(inputs, filter_group_name, filter_name) {
-    for(i in inputs) {
-        var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '_')) || $("#" + inputs[i].topic.replace(/\//g, '_'));
-        var output_endpoint = jsp.getEndpoint("_" + filter_group_name + "_" + filter_name + "_" + inputs[i].name);
+    // Show Filter Properties
+    new_filter.click(function() {
+        $("#properties-container").children().show();
+        $("#filter-type-name").text(type);
+        $("#filter-type-description").text(description);
+        $("#filter-properties").empty();
 
-        jsp.connect({ source: input_endpoint, target: output_endpoint});
-    }
-}
+        $.each(parameters, function (i, p) {
+            var parameter_container = $('<div class="form-group"><label for="' + p.name + '" class="parameter-name control-label">' + p.name + '</label><div class="input-group"><span class="input-group-btn"><button class="reset-parameter btn btn-default" type="button">Reset</button></span></div></div>');
 
-function remove_filter(filter_selector) {
-    filter_selector.addClass("inactive");
-    $(".filtergroup-body").children(".inactive:nth-child(" + (filter_selector.index() + 1) + ")").remove();
-    pad_filter_groups();
+            switch(p.type) {
+                // String parameter
+                case "str":
+                    var select_options = null;
+
+                    // FIXME: This shouldn't be in the "min" parameter...
+                    try {
+                        select_options = JSON.parse(p.min.replace(/'/g, "\""));
+                    } catch(err) { }
+
+                    // Is it a dropdown list?
+                    if($.isArray(select_options)) {
+                        parameter_container.find(".input-group").prepend($('<select id="' + p.name + '" class="parameter-value form-control" />'));
+
+                        $.each(select_options, function (index, option) {
+                            parameter_container.find("#" + p.name).append($("<option>", {text: option, value: option}));
+                        });
+
+                        parameter_container.find("#" + p.name).change(function () { send_set_parameter(filter_group_name, filter_name, p.name, $(this).val()) });
+                    } else {
+                        parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
+                        parameter_container.find("#" + p.name).on("input", function () { send_set_parameter(filter_group_name, filter_name, p.name, $(this).val()) });
+                    }
+
+                    parameter_container.find(".reset-parameter").click(function() {
+                        $("#" + p.name).val(p.default);
+                    });
+                    break;
+
+                // Numeric parameter
+                case "float":
+                case "int":
+                    parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="text" class="parameter-value form-control" value="' + p.default + '" />'));
+
+                    if($.isNumeric(p.min) && $.isNumeric(p.max)) {
+                        parameter_container.find(".input-group").before($('<div id="' + p.name + '-slider" class="slider"></div>'));
+                    }
+
+                    parameter_container.find("#" + p.name).on("input", function () {
+                        if($.isNumeric($(this).val())) {
+                            $("#" + p.name + "-slider").slider("value", $(this).val());
+                            send_set_parameter(filter_group_name, filter_name, p.name, $(this).val());
+                        }
+                    });
+
+                    parameter_container.find(".reset-parameter").click(function() {
+                        $("#" + p.name).val(p.default);
+                    });
+                    break;
+
+                // Boolean parameter
+                case "bool":
+                    parameter_container.find(".input-group").prepend($('<input id="' + p.name + '" type="checkbox" class="parameter-value form-control" />'));
+
+                    parameter_container.find(".reset-parameter").click(function() {
+                        $("#" + p.name).prop('checked', p.default);
+                    });
+
+                    parameter_container.find("#" + p.name).change(function () { send_set_parameter(filter_group_name, filter_name, p.name, $(this).val()) });
+                    break;
+            }
+
+            $("#filter-properties").append(parameter_container);
+            send_get_parameter(filter_group_name, filter_name, p.name);
+
+            if($.isNumeric(p.min) && $.isNumeric(p.max)) {
+                var step = (p.type == "float") ? 0.1 : 1;
+
+                $("#" + p.name + "-slider").slider({
+                    value: p.default,
+                    min: parseInt(p.min),
+                    max: parseInt(p.max),
+                    step: step,
+                    slide: function( event, ui ) {
+                        $("#" + p.name).val(ui.value);
+                        send_set_parameter(filter_group_name, filter_name, p.name, ui.value);
+                    }
+                });
+            }
+        });
+
+        $(".selected-filter").removeClass("selected-filter");
+        $(this).addClass("selected-filter");
+    });
+
+    // Edit Filter
+    new_filter.find(".edit-filter").click(function () {
+        $("#edit-filter-name").off("input");
+        $("#edit-filter-name").on("input", function() {
+            var filter_names = new_filter_group.find(".filter-name").map(function() { return $(this).text(); }).get();
+
+            filter_names.splice(filter_names.indexOf(filter_name), 1);
+
+            if($.trim($(this).val()) == "" || $.inArray($(this).val().replace(/\s+/g, "-").toLowerCase(), filter_names) > -1) {
+                $(".ui-dialog-buttonpane button:contains('Filter')").button("disable");
+            } else {
+                $(".ui-dialog-buttonpane button:contains('Filter')").button("enable");
+            }
+        });
+
+        $( "#filter-dialog" ).dialog({
+            resizable: false,
+            height: 220,
+            modal: true,
+            buttons: {
+                "Edit Filter": function() {
+                    send_edit_filter(filter_group_name, filter_name, { "name": $("#edit-filter-name").val() });
+                    new_filter.find("filter-name").text($("#edit-filter-name").val());
+                    $(this).dialog( "close" );
+                },
+                Cancel: function() {
+                    $("#edit-filter-name").val("");
+                    $(this).dialog( "close" );
+                }
+            }
+        });
+
+        $("#edit-filter-name").val(filter_name);
+        $(".ui-dialog-buttonpane button:contains('Edit Filter')").button("enable");
+    });
+
+    // Delete Filter
+    new_filter.find(".delete-filter").click(function () {
+        remove_filter(filter_group_name, filter_name);
+        send_delete_filter(filter_group_name, filter_name);
+    });
+
     jsp.repaintEverything();
 }
 
+function remove_filter(filter_group_name, filter_name) {
+    var index = filters(filter_group_name, filter_name).index();
+
+    jsp.removeAllEndpoints(filters(filter_group_name, filter_name).find(".filter-inputs"));
+    jsp.removeAllEndpoints(filters(filter_group_name, filter_name).find(".filter-outputs"));
+    filters(filter_group_name, filter_name).before(padding.clone());
+    filters(filter_group_name, filter_name).remove();
+    $(".filtergroup-body").children(".inactive:nth-child(" + (index + 1) + ")").remove();
+    // FIXME: Pad filter groups?
+    jsp.repaintEverything();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//                           WEBSOCKET FUNCTIONS                             //
+///////////////////////////////////////////////////////////////////////////////
+
+function send_set_parameter(filter_group_name, filter_name, parameter_name, parameter_value) {
+    master.send(JSON.stringify(
+        {
+            "set_parameter" :
+            {
+                "filter_name": filter_name,
+                "filter_group_name": filter_group_name,
+                "parameter_name" : parameter_name,
+                "parameter_value" : parameter_value
+            }
+        }
+    ));
+}
+
+function send_get_parameter(filter_group_name, filter_name, parameter_name) {
+    master.send(JSON.stringify(
+        {
+            "get_parameter" :
+            {
+                "filter_name": filter_name,
+                "filter_group_name": filter_group_name,
+                "parameter_name" : parameter_name
+            }
+        }
+    ));
+}
+
+function send_create_filter_group(filter_group_name) {
+    master.send(JSON.stringify(
+        {
+            "create_filter_group" :
+            {
+                "filter_group_name": filter_group_name
+            }
+        }
+    ));
+}
+
+function send_edit_filter_group(filter_group_name, options) {
+    //TODO
+}
+
+function send_delete_filter_group(filter_group_name) {
+    //TODO
+}
+
+function send_create_filter(filter_group_name, filter_name, type, order) {
+    master.send(JSON.stringify({
+        "create_filter": {
+            "filter_group_name": filter_group_name,
+            "filter_name": filter_name,
+            "type": type,
+            "order": order
+        }
+    }));
+}
+
+function send_edit_filter(filter_group_name, filter_name, options) {
+    //TODO
+}
+
+function send_delete_filter(filter_group_name, filter_name) {
+    master.send(JSON.stringify({
+        "delete_filter": {
+            "filter_group_name": filter_group_name,
+            "filter_name": filter_name
+        }
+    }));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//                             EVENT FUNCTIONS                               //
+///////////////////////////////////////////////////////////////////////////////
+// FIXME Remove this
 function update_sortable_filters() {
     $.each($(".filtergroup-body"), function(index, filtergroup) {
         if($(filtergroup).find(".filter").length == 1) {
             $(filtergroup).find(".filter").addClass("sort-disabled");
         } else {
             $(filtergroup).find(".filter").removeClass("sort-disabled");
+        }
+    });
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//                             OTHER FUNCTIONS                               //
+///////////////////////////////////////////////////////////////////////////////
+
+function load_filter_chain(workspace) {
+    // Clean up client
+    jsp.reset();
+    $(".filtergroup").remove();
+
+    // Initialize external inputs
+    // TODO Make function for this
+    for(input_topic_index in workspace.input_topics) {
+        var topic_name = workspace.input_topics[input_topic_index].topic;
+        var topic_type = workspace.input_topics[input_topic_index].type;
+
+        if($("#" + topic_type.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + topic_name + ")").length == 0) {
+            var input = $(topic_input(topic_name)).appendTo("#" + topic_type.split("/").pop().toLowerCase() + "-inputs");
+
+            input.attr("id", topic_name.replace(/\//g, '_'));
+            jsp.makeSource(input,
+                {
+                    anchor: "Right",
+                    scope: topic_type,
+                    connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
+                    connectorStyle: {
+                        strokeStyle: "#0000FF",
+                        lineWidth: 4
+                    }
+                });
+        }
+    }
+
+    // Initialize filters and filter groups
+    for(group_index in workspace.filter_groups) {
+        create_filter_group(workspace.filter_groups[group_index].name);
+
+        for(filter_index in workspace.filter_groups[group_index].filters) {
+            var filter_options = {
+                description: workspace.filter_groups[group_index].filters[filter_index].description,
+                inputs: workspace.filter_groups[group_index].filters[filter_index].inputs,
+                outputs: workspace.filter_groups[group_index].filters[filter_index].outputs,
+                parameters: workspace.filter_groups[group_index].filters[filter_index].parameters
+            }
+
+            create_filter(workspace.filter_groups[group_index].name, workspace.filter_groups[group_index].filters[filter_index].name, workspace.filter_groups[group_index].filters[filter_index].type, filter_options);
+        }
+    }
+
+    // Initialize all connections
+    for(group_index in workspace.filter_groups) {
+        for(filter_index in workspace.filter_groups[group_index].filters) {
+            for(i in workspace.filter_groups[group_index].filters[filter_index].inputs) {
+                var inputs = workspace.filter_groups[group_index].filters[filter_index].inputs;
+                var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '_')) || $("#" + inputs[i].topic.replace(/\//g, '_'));
+                var output_endpoint = jsp.getEndpoint("_" + workspace.filter_groups[group_index].name + "_" + workspace.filter_groups[group_index].filters[filter_index].name + "_" + inputs[i].name);
+
+                jsp.connect({ source: input_endpoint, target: output_endpoint});
+            }
+        }
+    }
+
+    optimize_filter_positions();
+}
+
+function optimize_filter_positions() {
+    $(".filter.inactive").remove();
+
+    jsp.selectEndpoints().each(function(endpoint) {
+        for(i in endpoint.connections) {
+            var source_filter = $(endpoint.connections[i].source).closest(".filter");
+            var target_filter = $(endpoint.connections[i].target).closest(".filter");
+
+            if(source_filter.closest(".filtergroup").find(".filtergroup-name").text() != target_filter.closest(".filtergroup").find(".filtergroup-name").text()) {
+                var padding_count = source_filter.index() + 1 - target_filter.index();
+
+                for(var j = 0; j < padding_count; j++) {
+                    target_filter.before(padding.clone());
+                }
+            }
         }
     });
 
@@ -477,11 +638,28 @@ function update_topic_list(topic_selector_id, data) {
     $("#" + topic_selector_id + "-topics option:contains(" + selected_topic[topic_selector_id] + ")").attr('selected', true);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                            UTILITY FUNCTIONS                              //
+///////////////////////////////////////////////////////////////////////////////
+
+function default_value(arg, val) {
+    return typeof arg !== 'undefined' ? arg : val;
+}
+
+function insert_at(container, element, index) {
+    if(index < 1) {
+        container.children(":nth-child(1)").after(element);
+    } else {
+        container.children(":nth-child(" + index + ")").after(element);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 jsPlumb.ready(function() {
     var input1 = new WebSocket("ws://" + window.location.hostname + ":8888/input1/");
     var input2 = new WebSocket("ws://" + window.location.hostname + ":8888/input2/");
     var topics = new WebSocket("ws://" + window.location.hostname + ":8888/topics/");
-    var filters = new WebSocket("ws://" + window.location.hostname + ":8888/filters/");
     var load = new WebSocket("ws://" + window.location.hostname + ":8888/load/");
 
     $("#properties-container").children().hide();
@@ -506,14 +684,6 @@ jsPlumb.ready(function() {
         update_topic_list("feed2", evt.data);
     };
 
-    filters.onmessage = function(evt) {
-        filter_metadata = JSON.parse(evt.data)
-
-        $.each(filter_metadata, function(i, f) {
-             $(filter_picker).append($('<li><a href="#">' + f.name + '</a></li>'));
-        });
-    };
-
     load.onmessage = function(evt) {
         $("#load-filterchain").prop('disabled', true);
         $("#filterchain-picker").empty();
@@ -528,14 +698,28 @@ jsPlumb.ready(function() {
         });
     };
 
+    filter_types.onmessage = function(evt) {
+        filter_metadata = JSON.parse(evt.data)
+    };
+
     master.onmessage = function(evt) {
         var data = JSON.parse(evt.data);
 
-        if("update" in data) {
-            $(data.update.id).val(data.update.value);
-            $(data.update.id + "-slider").slider("value", data.update.value);
-        } else {
-            load_filter_chain(data);
+        if(data.hasOwnProperty("parameter")) {
+            $("#" + data.parameter.name).val(data.parameter.value);
+            $("#" + data.parameter.name + "-slider").slider("value", data.parameter.value);
+        }
+
+        if(data.hasOwnProperty("filter")) {
+            if(data.filter.hasOwnProperty("type")) {
+                create_filter(data.filter.filter_group_name, data.filter.filter_name, data.filter.type, {}, data.filter.order + 1);
+            } else {
+                remove_filter(data.filter.filter_group_name, data.filter.filter_name);
+            }
+        }
+
+        if(data.hasOwnProperty("workspace")) {
+            load_filter_chain(data.workspace);
         }
     };
 
@@ -546,11 +730,11 @@ jsPlumb.ready(function() {
             modal: true,
             buttons: {
                 "Load Filter Chain": function() {
-                    $( this ).dialog( "close" );
+                    $(this).dialog( "close" );
                     load.send($("#filterchain-picker").val());
                 },
                 Cancel: function() {
-                    $( this ).dialog( "close" );
+                    $(this).dialog( "close" );
                 }
             }
         });
@@ -566,18 +750,43 @@ jsPlumb.ready(function() {
         input2.send([$("option:selected", this).text(), $("option:selected", this).val()]);
     });
 
-    $(".filtergroup-add.top").click(function() {
-        var new_filtergroup = $(filtergroup.toString());
+    $(".filtergroup-add").click(function () {
+        var position = 1;
 
-        $(this).after(new_filtergroup);
-        init_filtergroup(new_filtergroup);
-    });
+        if($(this).prop("class").split(" ").indexOf("bottom") > -1) {
+            position = $("#workspace").children().size() - 1;
+        }
 
-    $(".filtergroup-add.bottom").click(function() {
-        var new_filtergroup = $(filtergroup.toString());
+        $("#edit-filtergroup-name").off("input");
+        $("#edit-filtergroup-name").on("input", function() {
+            var filtergroup_names = $(".filtergroup-name").map(function() { return $(this).text(); }).get();
 
-        $(this).before(new_filtergroup);
-        init_filtergroup(new_filtergroup);
+            if($.trim($(this).val()) == "" || $.inArray($(this).val().replace(/\s+/g, "-").toLowerCase(), filtergroup_names) > -1) {
+                $(".ui-dialog-buttonpane button:contains('Filter Group')").button("disable");
+            } else {
+                $(".ui-dialog-buttonpane button:contains('Filter Group')").button("enable");
+            }
+        });
+
+        $( "#filtergroup-dialog" ).dialog({
+            resizable: false,
+            height: 220,
+            modal: true,
+            buttons: {
+                "Add Filter Group": function() {
+                    create_filter_group($("#edit-filtergroup-name").val().replace(/\s+/g, "-").toLowerCase(), position);
+                    $(this).dialog( "close" );
+                    send_create_filter_group({ filter_group_name: $("#edit-filtergroup-name").val().replace(/\s+/g, "-").toLowerCase() })
+                    $("#edit-filtergroup-name").val("");
+                },
+                Cancel: function() {
+                    $("#edit-filtergroup-name").val("");
+                    $(this).dialog( "close" );
+                }
+            }
+        });
+
+        $(".ui-dialog-buttonpane button:contains('Add Filter Group')").button("disable");
     });
 
 	jsp = jsPlumb.getInstance({

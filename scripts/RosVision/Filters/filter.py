@@ -30,6 +30,7 @@ class Filter:
             name = self.name + "/" + name
         return name
 
+    # FIXME Unsubscribe from topic
     def _init_io(self, params):
         # Outputs
         for i in self.descriptor.get_outputs():

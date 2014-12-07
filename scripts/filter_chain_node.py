@@ -25,10 +25,16 @@ def create_filter(req):
         if p.startswith(prefix):
             params[p[len(prefix):]] = rospy.get_param(p)
 
-    fc.create_filter(req.name, req.type, params)
+    fc.create_filter(req.name, req.type, req.order, params)
     update_filter_topic()
 
     return ros_vision.srv.CreateFilterResponse()
+
+def delete_filter(req):
+    fc.delete_filter(req.name)
+    update_filter_topic()
+
+    return ros_vision.srv.DeleteFilterResponse()
 
 def set_parameter(req):
     fc.set_param(req.filter_name + "/" + req.parameter_name, req.parameter_value)
@@ -37,7 +43,7 @@ def set_parameter(req):
 
 def get_parameter(req):
     res = ros_vision.srv.GetParameterValueResponse()
-    res.value = str(fc.get_param(req.filter_name + "/" + req.parameter_name))
+    res.parameter_value = str(fc.get_param(req.filter_name + "/" + req.parameter_name))
 
     return res
 
@@ -46,6 +52,7 @@ rospy.init_node('filter_chain_node')
 fc = FilterChain()
 
 create_filter_service = rospy.Service('~create_filter', ros_vision.srv.CreateFilter, create_filter)
+delete_filter_service = rospy.Service('~delete_filter', ros_vision.srv.DeleteFilter, delete_filter)
 set_parameter_service = rospy.Service('~set_parameter', ros_vision.srv.SetParameterValue, set_parameter)
 get_parameter_service = rospy.Service('~get_parameter', ros_vision.srv.GetParameterValue, get_parameter)
 

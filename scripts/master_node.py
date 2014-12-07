@@ -46,8 +46,6 @@ def load_workspace(req):
     while not workspace.is_ready() and not rospy.is_shutdown():
         rospy.sleep(0.1)
 
-    scheduler = Scheduler(workspace)
-
     res.workspace = MessageFactory.create_workspace_message_from_workspace(workspace)
 
     return res
@@ -69,6 +67,22 @@ def save_filterchain():
 def create_filtergroup(req):
     workspace.add_group(req.name)
 
+def delete_filtergroup(req):
+    delete_filter_srv_name = '/%s/delete_filter' % req.filter_group_name
+    rospy.wait_for_service(delete_filter_srv_name)
+    delete_filter = rospy.ServiceProxy(delete_filter_srv_name, ros_vision.srv.DeleteFilter)
+
+    delete_filter_request = ros_vision.srv.DeleteFilterRequest()
+    delete_filter_request.filter_group_name = req.filter_group_name
+
+    for filter_name in workspace.groups[req.filter_group_name].filters.keys():
+        delete_filter_request.filter_name = filter_name
+        delete_filter(delete_filter_request)
+
+    workspace.groups[req.filter_group_name].kill()
+    del workspace.groups[req.filter_group_name]
+    workspace.update_workspace()
+
 def list_filter_types(req):
     res = ros_vision.srv.ListFilterTypesResponse()
     descriptors = Filter.list_descriptors()
@@ -79,19 +93,18 @@ def list_filter_types(req):
     return res
 
 workspace = Workspace()
-scheduler = None
+#scheduler = Scheduler(workspace)
 
 get_workspace_service = rospy.Service('~get_workspace', ros_vision.srv.GetWorkspace, get_workspace)
 list_workspaces_service = rospy.Service('~list_workspaces', ros_vision.srv.ListWorkspaces, list_workspaces)
 load_workspace_service = rospy.Service('~load_workspace', ros_vision.srv.LoadWorkspace, load_workspace)
 create_filtergroup_service = rospy.Service('~create_filtergroup', ros_vision.srv.CreateFilterGroup, create_filtergroup)
+delete_filtergroup_service = rospy.Service('~delete_filtergroup', ros_vision.srv.DeleteFilterGroup, delete_filtergroup)
 list_filter_types_service = rospy.Service('~list_filter_types', ros_vision.srv.ListFilterTypes, list_filter_types)
 
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
-rate = rospy.Rate(100)
+#scheduler.run()
 while not rospy.is_shutdown():
-    if(scheduler is not None):
-       scheduler.run()
-    rate.sleep()
+    rospy.sleep(1)

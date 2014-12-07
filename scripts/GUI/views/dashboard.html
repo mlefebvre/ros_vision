@@ -7,15 +7,27 @@
         <link rel="stylesheet" href="styles/roscvm.css" />
         <link rel="stylesheet" href="styles/jquery-ui.css">
         <script src="scripts/jquery-2.1.1.min.js"></script>
-        <script src="scripts/jquery-ui.min.js"></script>
         <script src="scripts/bootstrap.min.js"></script>
-        <script src="scripts/jquery.jsPlumb-1.7.2-min.js"></script>
+        <script src="scripts/jquery-ui.min.js"></script>
+        <script src="scripts/jquery.jsPlumb-1.7.2.js"></script>
         <script src="scripts/roscvm.js"></script>
     </head>
 
     <body>
         <div id="load-dialog" style="display: none" title="Load this filter chain?">
             <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>The changes made to the current filter chain will be lost. Do you want to continue?</p>
+        </div>
+        <div id="filtergroup-dialog" style="display: none" title="Filter Group">
+            <fieldset>
+                <label for="edit-filtergroup-name">Filter Group Name</label>
+                <input type="text" id="edit-filtergroup-name" class="form-control" />
+            </fieldset>
+        </div>
+        <div id="filter-dialog" style="display: none" title="Filter">
+            <fieldset>
+                <label for="edit-filter-name">Filter Name</label>
+                <input type="text" id="edit-filter-name" class="form-control" />
+            </fieldset>
         </div>
         <div class="gui-header">
             <div class="settings-container">

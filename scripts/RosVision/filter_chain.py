@@ -23,10 +23,14 @@ class FilterChain:
         else:
             pass
 
-    def create_filter(self, name, filter_type, params={}):
+    def create_filter(self, name, filter_type, order=len(_filter_list), params={}):
         f = FilterFactory.create_filter(name, filter_type, params)
         self._filters[name] = f
-        self._filter_list.append(f)
+        self._filter_list.insert(order, f)
+
+    def delete_filter(self, name):
+        self._filter_list.remove(self._filters[name])
+        del self._filters[name]
 
     def save(self, file_name):
         pass

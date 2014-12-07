@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import uuid
 
 import tornado.httpserver
 import tornado.ioloop
@@ -24,29 +25,103 @@ class MasterHandler(tornado.websocket.WebSocketHandler):
     clients = set()
 
     def open(self):
+        self.id = uuid.uuid4()
         MasterHandler.clients.add(self)
         MasterHandler.notify_all_clients()
 
     def on_message(self, message):
-        parameter = json.loads(message)["parameter"]
-        service_name = '/%s/set_parameter' % parameter["filter_group_name"]
+        data = json.loads(message)
 
-        req = ros_vision.srv.SetParameterValueRequest()
-        req.filter_name = parameter["filter_name"]
-        req.parameter_name = parameter["parameter_name"]
-        req.parameter_value = str(parameter["parameter_value"])
+        if "set_parameter" in data:
+            parameter = data["set_parameter"]
+            service_name = '/%s/set_parameter' % parameter["filter_group_name"]
 
-        rospy.wait_for_service(service_name)
-        set_parameter_value = rospy.ServiceProxy(service_name, ros_vision.srv.SetParameterValue)
-        set_parameter_value(req)
+            req = ros_vision.srv.SetParameterValueRequest()
+            req.filter_name = parameter["filter_name"]
+            req.parameter_name = parameter["parameter_name"]
+            req.parameter_value = str(parameter["parameter_value"])
 
-        [client.write_message(json.dumps({
-            "update":
-                {
-                    "id": "#" + parameter["parameter_name"],
-                    "value": str(parameter["parameter_value"])
-                }
-            })) for client in self.clients]
+            rospy.wait_for_service(service_name)
+            set_parameter_value = rospy.ServiceProxy(service_name, ros_vision.srv.SetParameterValue)
+            set_parameter_value(req)
+
+            MasterHandler.clients.discard(self)
+            [client.write_message(json.dumps({
+                "parameter":
+                    {
+                        "id": "#" + parameter["parameter_name"],
+                        "value": str(parameter["parameter_value"])
+                    }
+                })) for client in MasterHandler.clients]
+            MasterHandler.clients.add(self)
+        elif "get_parameter" in data:
+            parameter = data["get_parameter"]
+            service_name = '/%s/get_parameter' % parameter["filter_group_name"]
+
+            req = ros_vision.srv.GetParameterValueRequest()
+            req.filter_name = parameter["filter_name"]
+            req.parameter_name = parameter["parameter_name"]
+
+            rospy.wait_for_service(service_name)
+            get_parameter_value = rospy.ServiceProxy(service_name, ros_vision.srv.GetParameterValue)
+            loaded_parameter = get_parameter_value(req)
+
+            self.write_message(json.dumps({
+                "parameter":
+                    {
+                        "name": parameter["parameter_name"],
+                        "value": loaded_parameter.parameter_value
+                    }
+                }))
+        elif "create_filter" in data:
+            filter = data["create_filter"]
+            service_name = '/%s/create_filter' % filter["filter_group_name"]
+
+            req = ros_vision.srv.CreateFilterRequest()
+            req.name = filter["filter_name"]
+            req.type = filter["type"]
+            req.order = filter["order"]
+
+            rospy.wait_for_service(service_name)
+            create_filter = rospy.ServiceProxy(service_name, ros_vision.srv.CreateFilter)
+            create_filter(req)
+
+            MasterHandler.clients.discard(self)
+            [client.write_message(json.dumps({
+                "filter":
+                    {
+                        "filter_group_name": filter["filter_group_name"],
+                        "filter_name": filter["filter_name"],
+                        "type": filter["type"],
+                        "order": filter["order"]
+                    }
+            })) for client in MasterHandler.clients]
+            MasterHandler.clients.add(self)
+
+        elif "delete_filter" in data:
+            filter = data["delete_filter"]
+            service_name = '/%s/delete_filter' % filter["filter_group_name"]
+
+            req = ros_vision.srv.DeleteFilterRequest()
+            req.name = filter["filter_name"]
+
+            rospy.wait_for_service(service_name)
+            delete_filter = rospy.ServiceProxy(service_name, ros_vision.srv.DeleteFilter)
+            delete_filter(req)
+
+            MasterHandler.clients.discard(self)
+            [client.write_message(json.dumps({
+                "filter":
+                    {
+                        "filter_group_name": filter["filter_group_name"],
+                        "filter_name": filter["filter_name"]
+                    }
+            })) for client in MasterHandler.clients]
+            MasterHandler.clients.add(self)
+        elif "create_filter_group" in data:
+            pass
+        elif "delete_filter_group" in data:
+            pass
 
     def on_close(self):
         MasterHandler.clients.remove(self)
@@ -58,7 +133,7 @@ class MasterHandler(tornado.websocket.WebSocketHandler):
             get_workspace = rospy.ServiceProxy('/vision_master/get_workspace', ros_vision.srv.GetWorkspace)
             workspace = get_workspace().workspace
 
-        [client.write_message(json.dumps(workspace, cls=MessageEncoder)) for client in MasterHandler.clients]
+        [client.write_message(json.dumps({"workspace" : workspace}, cls=MessageEncoder)) for client in MasterHandler.clients]
 
 class GUI(tornado.web.Application):
     def __init__(self):

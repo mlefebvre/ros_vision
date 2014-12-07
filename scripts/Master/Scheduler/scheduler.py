@@ -59,7 +59,7 @@ class Scheduler:
             elif tw.topic_type != new_outputs[topic]:
                 old_outputs.append(topic)
         while len(old_outputs) > 0:
-            self.outputs[old_outputs[0]].close()
+            self.outputs[old_outputs[0]].stop()
             del self.outputs[old_outputs[0]]
             del old_outputs[0]
 
