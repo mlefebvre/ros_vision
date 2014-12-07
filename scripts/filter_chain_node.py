@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from samba import descriptor
-
-import roslib;
+import roslib
 
 roslib.load_manifest('ros_vision')
 import rospy
@@ -11,12 +9,14 @@ from RosVision.filter_chain import FilterChain
 from RosVision.io_manager import IOManager
 from RosVision.message_factory import MessageFactory
 
+
 def update_filter_topic():
     msg = ros_vision.msg.FilterList()
     for f in fc.get_filters():
         msg.filters.append(MessageFactory.create_filter_message_from_filter(f))
 
     filter_topic.publish(msg)
+
 
 def create_filter(req):
     params = {}
@@ -30,16 +30,19 @@ def create_filter(req):
 
     return ros_vision.srv.CreateFilterResponse()
 
+
 def delete_filter(req):
     fc.delete_filter(req.name)
     update_filter_topic()
 
     return ros_vision.srv.DeleteFilterResponse()
 
+
 def set_parameter(req):
     fc.set_param(req.filter_name + "/" + req.parameter_name, req.parameter_value)
 
     return ros_vision.srv.SetParameterValueResponse()
+
 
 def get_parameter(req):
     res = ros_vision.srv.GetParameterValueResponse()
@@ -57,6 +60,7 @@ set_parameter_service = rospy.Service('~set_parameter', ros_vision.srv.SetParame
 get_parameter_service = rospy.Service('~get_parameter', ros_vision.srv.GetParameterValue, get_parameter)
 
 filter_topic = rospy.Publisher('~filters', ros_vision.msg.FilterList, queue_size=1, latch=True)
+stats_topic = rospy.Publisher('~stats', ros_vision.msg.Statistics, queue_size=5)
 
 max_rate = rospy.Rate(30)
 io_manager = IOManager()
@@ -66,12 +70,14 @@ count = 0
 
 while not rospy.is_shutdown():
     last = rospy.get_time()
-    #io_manager.wait_for_signal()
-    fc.execute()
-    if rospy.get_name() == "/main":
-        diff = rospy.get_time() - last
-        count += 1
-        total += diff
-#        print "--------------", (total / count) * 1000
+    last_stats = fc.execute()
+    avg_stats = fc.get_average_filter_execution_time()
+    if len(avg_stats) > 0:
+        stat_msg = ros_vision.msg.Statistics()
+        for name in avg_stats.keys():
+            stat_msg.filters.append(ros_vision.msg.FilterStatistics(name=name, average_execution_time=avg_stats[name], last_execution_time=last_stats[name]))
+        stat_msg.average_execution_time = sum(avg_stats.values())
+        stats_topic.publish(stat_msg)
+
     max_rate.sleep()
 

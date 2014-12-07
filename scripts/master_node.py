@@ -23,13 +23,13 @@ def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
 
 def get_workspace(req):
-    res = ros_vision.srv.GetWorkspaceResponse();
+    res = ros_vision.srv.GetWorkspaceResponse()
     res.workspace = MessageFactory.create_workspace_message_from_workspace(workspace)
 
     return res
 
 def load_workspace(req):
-    res = ros_vision.srv.LoadWorkspaceResponse();
+    res = ros_vision.srv.LoadWorkspaceResponse()
     rospack = rospkg.RosPack()
     name = os.path.join(rospack.get_path("ros_vision"), "workspaces/" + req.name + ".yaml")
 

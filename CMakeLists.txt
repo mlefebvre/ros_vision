@@ -19,10 +19,12 @@ add_message_files(
    FilterList.msg
    FilterGroup.msg
    FilterGroupNames.msg
+   FilterStatistics.msg
    IODescriptor.msg
    Parameter.msg
    PolygonListStamped.msg
    StartSignal.msg
+   Statistics.msg
    Workspace.msg
  )
  

@@ -1,10 +1,11 @@
 from Filters.filter_factory import FilterFactory
-
+import time
 
 class FilterChain:
 
     _filters = {}
     _filter_list = []
+    _filter_stats = {}
 
     def __init__(self):
         pass
@@ -27,10 +28,12 @@ class FilterChain:
         f = FilterFactory.create_filter(name, filter_type, params)
         self._filters[name] = f
         self._filter_list.insert(order, f)
+        self._filter_stats[name] = []
 
     def delete_filter(self, name):
         self._filter_list.remove(self._filters[name])
         del self._filters[name]
+        del self._filter_stats[name]
 
     def save(self, file_name):
         pass
@@ -39,8 +42,26 @@ class FilterChain:
         pass
 
     def execute(self):
+        current_stats = {}
         for f in self._filter_list:
+            start = time.time()
             f.execute()
+            t = time.time() - start
+            current_stats[f.name] = t
+            self._filter_stats[f.name].append(t)
+            while len(self._filter_stats[f.name]) > 100:
+                del self._filter_stats[f.name][0]
+        return current_stats
+
+    def get_average_filter_execution_time(self):
+        avg = {}
+        for f_name, f_times in self._filter_stats.items():
+            if len(f_times) == 0:
+                avg[f_name] = 0
+            else:
+                avg[f_name] = sum(f_times) / len(f_times)
+        return avg
+
 
     def get_filters(self):
         return self._filter_list

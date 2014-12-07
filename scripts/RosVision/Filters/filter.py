@@ -30,7 +30,6 @@ class Filter:
             name = self.name + "/" + name
         return name
 
-    # FIXME Unsubscribe from topic
     def _init_io(self, params):
         # Outputs
         for i in self.descriptor.get_outputs():
@@ -58,8 +57,19 @@ class Filter:
 
     def set_param(self, name, value):
         type = filter(lambda p: p.get_name() == name, self.descriptor.get_parameters())[0].get_type()
-
         self._params[name] = type(value)
+
+        #Subscribe to the new topic
+        #TODO: Unsubscribe
+        for d in self.descriptor.get_outputs():
+            if name == d.get_name():
+                topic_name = self._format_io_name(value)
+                self._io_manager.create_topic(topic_name, d.get_io_type())
+
+        for d in self.descriptor.get_inputs():
+            if name == d.get_name():
+                topic_name = self._format_io_name(value)
+                self._io_manager.watch_topic(topic_name, d.get_io_type())
 
     def get_param(self, name):
         return self._params[name]
