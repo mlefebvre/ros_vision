@@ -55,15 +55,10 @@ void imageCallback (const boost::shared_ptr<openni_wrapper::Image> &image)
     Mat bgrimage;
     cvtColor(cvimage, bgrimage, CV_BGR2RGB);
 
-    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", bgrimage).toImageMsg();
+    std_msgs::Header header;
+    header.frame_id = "openni_rgb_optical_frame";
+    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", bgrimage).toImageMsg();
 
-
-    //cv_bridge::CvImage msg;
-    //msg.encoding = sensor_msgs::image_encodings::TYPE_8UC3;
-    //msg.header.stamp = ros::Time::now();
-    //msg.header.frame_id = "openni_rgb_optical_frame";
-    //msg.image    = bgrimage;
-    //imgpub.publish(msg.toImageMsg());
 
     imgpub.publish(msg);
 
@@ -83,7 +78,6 @@ int main(int argc, char **argv)
     pub = n.advertise<sensor_msgs::PointCloud2>("point_cloud", 15);
     image_transport::ImageTransport it(nh);
     imgpub = it.advertise("/capra_camera/image", 1);
-    //imgpub = n.advertise<sensor_msgs::Image>("image", 15);
 
     // Openni
     pcl::Grabber* interface = new pcl::OpenNIGrabber();
