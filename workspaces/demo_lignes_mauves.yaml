@@ -33,3 +33,4 @@ line_detector:
   topointcloud:
     type: BitwiseToPointCloud
     input: resize/output
+    cloud: /cloud_in
