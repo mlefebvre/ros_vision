@@ -35,12 +35,13 @@ class BitwiseToPointCloud(Filter):
                 for x in xrange(0, im1.shape[1]):
                     val = im1[y, x]
                     if val > 0:
-                        points.append((-((x/width) * real_size_x - real_size_x/2.0), (y/height)*real_size_y + camera_dist, 0))
+                        points.append(((y/height)*real_size_y + camera_dist, (x/width) * real_size_x - real_size_x/2.0, 0))
 
             pc = pcl.PointCloud()
             pc.from_list(points)
 
             output = PointCloud(pc)
             im.copy_header(output)
+            output.frame = "/laser"
 
             self.set_output("cloud", output)

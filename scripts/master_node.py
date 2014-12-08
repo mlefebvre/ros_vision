@@ -100,6 +100,10 @@ list_filter_types_service = rospy.Service('~list_filter_types', ros_vision.srv.L
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
+workspace_name = rospy.get_param("~workspace", None)
+if workspace_name:
+    load_workspace(ros_vision.srv.LoadWorkspaceRequest(name=workspace_name))
+
 #scheduler.run()
 while not rospy.is_shutdown():
     rospy.sleep(1)

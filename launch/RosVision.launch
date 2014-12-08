@@ -1,0 +1,8 @@
+<launch>
+    <arg name="workspace" default="demo_lignes_mauves" />
+    <node pkg="ros_vision" name="master_node" type="master_node.py" output="screen">
+        <param name="workspace" value="$(arg workspace)" />
+    </node>
+<!--    <node pkg="ros_vision" name="gui_node" type="gui_node.py" output="screen">
+    </node>-->
+</launch>

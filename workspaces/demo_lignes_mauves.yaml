@@ -30,6 +30,6 @@ line_detector:
     input: perspective/output
     width: 20
     height: 20
-  topc:
+  topointcloud:
     type: BitwiseToPointCloud
     input: resize/output
