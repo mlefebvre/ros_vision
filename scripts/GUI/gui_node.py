@@ -189,7 +189,8 @@ class GUI(tornado.web.Application):
             (r"/topics/", TopicsHandler),
             (r"/filters/", FiltersHandler),
             (r"/master/", MasterHandler),
-            (r"/load/", LoadHandler)
+            (r"/load/", LoadHandler),
+            (r"/save/", SaveHandler)
         ]
         settings = dict(
             title=u"ROS CVM",
@@ -245,10 +246,7 @@ class FiltersHandler(tornado.websocket.WebSocketHandler):
         self.write_message(json.dumps(list_filter_types().filter_list.filters, cls=MessageEncoder))
 
 class LoadHandler(tornado.websocket.WebSocketHandler):
-    clients = set()
-
     def open(self):
-        LoadHandler.clients.add(self)
         rospy.wait_for_service('/vision_master/list_workspaces')
         list_workspaces = rospy.ServiceProxy('/vision_master/list_workspaces', ros_vision.srv.ListWorkspaces)
         self.write_message(json.dumps(list_workspaces().workspaces))
@@ -261,12 +259,14 @@ class LoadHandler(tornado.websocket.WebSocketHandler):
         load_workspace = rospy.ServiceProxy('/vision_master/load_workspace', ros_vision.srv.LoadWorkspace)
         MasterHandler.notify_clients(load_workspace(req))
 
-    def on_close(self):
-        LoadHandler.clients.remove(self)
+class SaveHandler(tornado.websocket.WebSocketHandler):
+    def on_message(self, message):
+        req = ros_vision.srv.SaveWorkspaceRequest()
+        req.name = message
 
-"""class SaveHandler(tornado.websocket.WebSocketHandler):
-    def open(self):
-        pass"""
+        rospy.wait_for_service('/vision_master/save_workspace')
+        save_workspace = rospy.ServiceProxy('/vision_master/save_workspace', ros_vision.srv.SaveWorkspace)
+        save_workspace(req)
 
 rospy.init_node('roscvm_gui')
 

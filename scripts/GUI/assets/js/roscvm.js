@@ -704,8 +704,11 @@ jsPlumb.ready(function() {
     var input2 = new WebSocket("ws://" + window.location.hostname + ":8888/input2/");
     var topics = new WebSocket("ws://" + window.location.hostname + ":8888/topics/");
     var load = new WebSocket("ws://" + window.location.hostname + ":8888/load/");
+    var save = new WebSocket("ws://" + window.location.hostname + ":8888/save/");
 
     $("#properties-container").children().hide();
+    $("#load-workspace").prop('disabled', true);
+    $("#save-workspace").prop('disabled', true);
 
     draw_image("feed1", "None");
     draw_image("feed2", "None");
@@ -728,16 +731,15 @@ jsPlumb.ready(function() {
     };
 
     load.onmessage = function(evt) {
-        $("#load-filterchain").prop('disabled', true);
-        $("#filterchain-picker").empty();
-        $("#filterchain-picker").append($("<option selected disabled>Pick a filter chain...</option>"));
+        $("#workspace-picker").empty();
+        $("#workspace-picker").append($("<option selected disabled>Pick a filter chain...</option>"));
 
-        $("#filterchain-picker").change(function() {
-            $("#load-filterchain").prop('disabled', false);
+        $("#workspace-picker").change(function() {
+            $("#load-workspace").prop('disabled', false);
         });
 
         $.each(JSON.parse(evt.data), function(i, fc) {
-             $("#filterchain-picker").append($("<option></option>").val(fc).text(fc));
+             $("#workspace-picker").append($("<option></option>").val(fc).text(fc));
         });
     };
 
@@ -783,7 +785,7 @@ jsPlumb.ready(function() {
         }
     };
 
-    $("#load-filterchain").click(function () {
+    $("#load-workspace").click(function () {
         $( "#load-dialog" ).dialog({
             resizable: false,
             height: 220,
@@ -791,13 +793,22 @@ jsPlumb.ready(function() {
             buttons: {
                 "Load Filter Chain": function() {
                     $(this).dialog( "close" );
-                    load.send($("#filterchain-picker").val());
+                    $("#workspace-name").val($("#workspace-picker").val());
+                    load.send($("#workspace-picker").val());
                 },
                 Cancel: function() {
                     $(this).dialog( "close" );
                 }
             }
         });
+    });
+
+    $("#workspace-name").on("input", function() {
+        $("#save-workspace").prop('disabled', $.trim($(this).val()) == "");
+    });
+
+    $("#save-workspace").click(function () {
+        save.send($.trim($("#workspace-name").val().replace(/\s+/g, "_")));
     });
 
     $("#feed1-topics").change(function () {
