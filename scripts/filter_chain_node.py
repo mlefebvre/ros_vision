@@ -37,9 +37,11 @@ def delete_filter(req):
 
     return ros_vision.srv.DeleteFilterResponse()
 
-
 def set_parameter(req):
     fc.set_param(req.filter_name + "/" + req.parameter_name, req.parameter_value)
+
+    if req.update_topics:
+        update_filter_topic()
 
     return ros_vision.srv.SetParameterValueResponse()
 

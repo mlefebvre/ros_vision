@@ -41,7 +41,7 @@ def load_workspace(req):
 
     with open(name, 'r') as f:
         for filtergroup_name, filters in yaml.load(f).items():
-            workspace.add_group(filtergroup_name, filters)
+            workspace.add_group(filtergroup_name, None, filters)
 
     while not workspace.is_ready() and not rospy.is_shutdown():
         rospy.sleep(0.1)
@@ -65,23 +65,18 @@ def save_filterchain():
     pass
 
 def create_filtergroup(req):
-    workspace.add_group(req.name)
+    workspace.add_group(req.name, req.order)
+
+    return ros_vision.srv.CreateFilterGroupResponse()
 
 def delete_filtergroup(req):
-    delete_filter_srv_name = '/%s/delete_filter' % req.filter_group_name
+    delete_filter_srv_name = '/%s/delete_filter' % req.name
     rospy.wait_for_service(delete_filter_srv_name)
-    delete_filter = rospy.ServiceProxy(delete_filter_srv_name, ros_vision.srv.DeleteFilter)
-
-    delete_filter_request = ros_vision.srv.DeleteFilterRequest()
-    delete_filter_request.filter_group_name = req.filter_group_name
-
-    for filter_name in workspace.groups[req.filter_group_name].filters.keys():
-        delete_filter_request.filter_name = filter_name
-        delete_filter(delete_filter_request)
-
-    workspace.groups[req.filter_group_name].kill()
-    del workspace.groups[req.filter_group_name]
+    workspace.groups["/" + req.name].kill()
+    del workspace.groups["/" + req.name]
     workspace.update_workspace()
+
+    return ros_vision.srv.DeleteFilterGroupResponse()
 
 def list_filter_types(req):
     res = ros_vision.srv.ListFilterTypesResponse()

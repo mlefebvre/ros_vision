@@ -15,7 +15,7 @@ class Filter:
     def __init__(self, name, params):
         self.name = name
         self._init_params(params)
-        self._init_io(params)
+        self._init_io()
         self.initialize()
         print "=============================="
 
@@ -30,22 +30,21 @@ class Filter:
             name = self.name + "/" + name
         return name
 
-    def _init_io(self, params):
+    def _init_io(self):
         # Outputs
         for i in self.descriptor.get_outputs():
-            name = i.get_name()
-            if i.get_name() in params:
-                name = params[i.get_name()]
-            name = self._format_io_name(name)
+            if not i.get_name() in self._params:
+                self._params[i.get_name()] = i.get_name()
+            name = self._format_io_name(self._params[i.get_name()])
             self._io_manager.create_topic(name, i.get_io_type())
 
         # Inputs
         for i in self.descriptor.get_inputs():
-            name = i.get_name()
-            if i.get_name() in params:
-                name = params[i.get_name()]
-            name = self._format_io_name(name)
+            if not i.get_name() in self._params:
+                self._params[i.get_name()] = i.get_name()
+            name = self._format_io_name(self._params[i.get_name()])
             self._io_manager.watch_topic(name, i.get_io_type())
+
 
     @abc.abstractmethod
     def initialize(self):
@@ -56,8 +55,11 @@ class Filter:
         return
 
     def set_param(self, name, value):
-        type = filter(lambda p: p.get_name() == name, self.descriptor.get_parameters())[0].get_type()
-        self._params[name] = type(value)
+        if any(p.name == name for p in self.descriptor.get_parameters()):
+            type = filter(lambda p: p.get_name() == name, self.descriptor.get_parameters())[0].get_type()
+            self._params[name] = type(value)
+        else:
+            self._params[name] = value
 
         #Subscribe to the new topic
         #TODO: Unsubscribe

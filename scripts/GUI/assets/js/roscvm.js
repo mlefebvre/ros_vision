@@ -149,6 +149,7 @@ function create_filter_group(filter_group_name, position) {
     // Delete Filter Group
     new_filter_group.find(".delete-filtergroup").click(function () {
         remove_filter_group(filter_group_name);
+        send_delete_filter_group(filter_group_name);
     });
 
     new_filter_group.find(".filtergroup-body").sortable({
@@ -190,11 +191,10 @@ function remove_filter_group(filter_group_name) {
     filtergroups(filter_group_name).remove();
 
     jsp.repaintEverything();
-    send_remove_filter_group(filter_group_name);
 }
 
 function create_filter(filter_group_name, filter_name, type, options, position) {
-    var new_filter = $('<div class="filter sort-disabled panel panel-default"><div class="filter-header panel-heading"><span class="filter-type"></span><span class="filter-name"></span><span class="filter-controls btn-group"><button class="edit-filter btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filter btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filter-body panel-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>');
+    var new_filter = $('<div class="filter sort-disabled panel panel-default"><div class="filter-header panel-heading"><span class="filter-type label label-primary"></span><span class="filter-name"></span><span class="filter-controls btn-group"><button class="edit-filter btn btn-default" type="button"><span class="glyphicon glyphicon-pencil"></span></button><button class="delete-filter btn btn-default" type="button"><span class="glyphicon glyphicon-remove"></span></button></span></div><div class="filter-body panel-body"><div class="filter-inputs"></div><div class="filter-outputs"></div></div></div>');
     var filter_info = filter_metadata.filter(function (f) { return f.type == type; })[0];
     var description = default_value(options.description, filter_info.description);
     var inputs = default_value(options.inputs, filter_info.inputs);
@@ -229,14 +229,14 @@ function create_filter(filter_group_name, filter_name, type, options, position) 
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (inputs.length + 1)), -1, 0]
             },
             {
-                endpoint: ["Dot", {radius: 5} ],
+                endpoint: ["Dot", {radius: 10} ],
                 cssClass: "input",
                 hoverClass: "input-hover",
-                paintStyle: { fillStyle: "#FF0000", opacity: 0.5 },
+                paintStyle: { fillStyle: "#d9534f", opacity: 0.5 },
                 isTarget: true,
                 scope: inputs[i].type,
                 overlays:[
-                    [ "Label", { location: [0, -1.2], label: inputs[i].type, cssClass: "input-label" } ]
+                    [ "Label", { location: [0, -1.2], label: '<span class="input-type label label-danger">' + inputs[i].type + '</span>&nbsp;<strong class="input-name">' + inputs[i].name + '</strong>', cssClass: "input-label" } ]
                 ]
             }
         );
@@ -250,21 +250,21 @@ function create_filter(filter_group_name, filter_name, type, options, position) 
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (outputs.length + 1)), 1, 0]
             },
             {
-                endpoint: ["Dot", {radius: 5} ],
+                endpoint: ["Dot", {radius: 10} ],
                 cssClass: "output",
                 hoverClass: "output-hover",
-                paintStyle: { fillStyle: "#0000FF", opacity: 0.5 },
+                paintStyle: { fillStyle: "#5bc0de", opacity: 0.5 },
                 isSource: true,
                 scope: outputs[i].type,
                 maxConnections: -1,
                 connector: [ "Bezier" ],
                 connectorStyle: {
-                    gradient: { stops: [[0, "#00F"], [0.5, '#09098e'], [1, "#00F"]] },
-                    strokeStyle: "#00F",
+                    gradient: { stops:[ [ 0, "#5bc0de" ], [ 1, "#d9534f" ] ] },
+                    strokeStyle: "#d9534f",
                     lineWidth: 5
                 },
                 overlays:[
-                    [ "Label", { location: [0, -1.2], label: outputs[i].type, cssClass: "output-label" } ]
+                    [ "Label", { location: [0, -1.2], label: '<span class="input-type label label-info">' + outputs[i].type + '</span>&nbsp;<strong class="input-name">' + outputs[i].name + '</strong>', cssClass: "output-label" } ]
                 ]
             }
         );
@@ -453,12 +453,13 @@ function send_get_parameter(filter_group_name, filter_name, parameter_name) {
     ));
 }
 
-function send_create_filter_group(filter_group_name) {
+function send_create_filtergroup(filter_group_name, order) {
     master.send(JSON.stringify(
         {
-            "create_filter_group" :
+            "create_filtergroup" :
             {
-                "filter_group_name": filter_group_name
+                "filter_group_name": filter_group_name,
+                "order": order
             }
         }
     ));
@@ -469,7 +470,14 @@ function send_edit_filter_group(filter_group_name, options) {
 }
 
 function send_delete_filter_group(filter_group_name) {
-    //TODO
+    master.send(JSON.stringify(
+        {
+            "delete_filtergroup" :
+            {
+                "filter_group_name": filter_group_name
+            }
+        }
+    ));
 }
 
 function send_create_filter(filter_group_name, filter_name, type, order) {
@@ -496,6 +504,34 @@ function send_delete_filter(filter_group_name, filter_name) {
     }));
 }
 
+function on_connection_change(info, original_event) {
+    master.send(JSON.stringify({
+        "set_input": {
+            "filter_group_name": $(info.target).closest(".filtergroup").find(".filtergroup-name").text(),
+            "filter_name": $(info.target).closest(".filter").find(".filter-name").text(),
+            "parameter_name": $(info.targetEndpoint.getOverlay().label).siblings(".input-name").text(),
+            "parameter_value": info.sourceEndpoint.getUuid().replace(/_/g, "/"),
+            "source_id": info.sourceEndpoint.getUuid(),
+            "target_id": info.targetEndpoint.getUuid(),
+            "delete": false
+        }
+    }));
+}
+
+function on_connection_detached(info, original_event) {
+    master.send(JSON.stringify({
+        "set_input": {
+            "filter_group_name": $(info.target).closest(".filtergroup").find(".filtergroup-name").text(),
+            "filter_name": $(info.target).closest(".filter").find(".filter-name").text(),
+            "parameter_name": $(info.targetEndpoint.getOverlay().label).siblings(".input-name").text(),
+            "parameter_value": $(info.targetEndpoint.getOverlay().label).siblings(".input-name").text(),
+            "source_id": info.sourceEndpoint.getUuid(),
+            "target_id": info.targetEndpoint.getUuid(),
+            "delete": true
+        }
+    }));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                             EVENT FUNCTIONS                               //
 ///////////////////////////////////////////////////////////////////////////////
@@ -516,7 +552,7 @@ function update_sortable_filters() {
 
 function load_filter_chain(workspace) {
     // Clean up client
-    jsp.reset();
+    jsp.deleteEveryEndpoint();
     $(".filtergroup").remove();
 
     // Initialize external inputs
@@ -559,17 +595,24 @@ function load_filter_chain(workspace) {
     }
 
     // Initialize all connections
+    jsp.unbind("connection");
+
     for(group_index in workspace.filter_groups) {
         for(filter_index in workspace.filter_groups[group_index].filters) {
             for(i in workspace.filter_groups[group_index].filters[filter_index].inputs) {
                 var inputs = workspace.filter_groups[group_index].filters[filter_index].inputs;
-                var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '_')) || $("#" + inputs[i].topic.replace(/\//g, '_'));
-                var output_endpoint = jsp.getEndpoint("_" + workspace.filter_groups[group_index].name + "_" + workspace.filter_groups[group_index].filters[filter_index].name + "_" + inputs[i].name);
 
-                jsp.connect({ source: input_endpoint, target: output_endpoint});
+                if(inputs[i].topic.replace(/\//g, '_') != "_" + workspace.filter_groups[group_index].name + "_" + workspace.filter_groups[group_index].filters[filter_index].name + "_" + inputs[i].name) {
+                    var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '_')) || $("#" + inputs[i].topic.replace(/\//g, '_'));
+                    var output_endpoint = jsp.getEndpoint("_" + workspace.filter_groups[group_index].name + "_" + workspace.filter_groups[group_index].filters[filter_index].name + "_" + inputs[i].name);
+
+                    jsp.connect({ source: input_endpoint, target: output_endpoint});
+                }
             }
         }
     }
+
+    jsp.bind("connection", on_connection_change);
 
     optimize_filter_positions();
 }
@@ -708,17 +751,34 @@ jsPlumb.ready(function() {
         if(data.hasOwnProperty("parameter")) {
             $("#" + data.parameter.name).val(data.parameter.value);
             $("#" + data.parameter.name + "-slider").slider("value", data.parameter.value);
-        }
-
-        if(data.hasOwnProperty("filter")) {
+        } else if(data.hasOwnProperty("filter")) {
             if(data.filter.hasOwnProperty("type")) {
                 create_filter(data.filter.filter_group_name, data.filter.filter_name, data.filter.type, {}, data.filter.order + 1);
             } else {
                 remove_filter(data.filter.filter_group_name, data.filter.filter_name);
             }
+        } else if(data.hasOwnProperty("filtergroup")) {
+            if (data.filtergroup.hasOwnProperty("order")) {
+                create_filter_group(data.filtergroup.filter_group_name, data.filtergroup.order + 1)
+            } else {
+                remove_filter_group(data.filtergroup.filter_group_name);
+            }
         }
+        else if(data.hasOwnProperty("input")) {
+            jsp.unbind("connection");
+            jsp.unbind("connectionDetached");
 
-        if(data.hasOwnProperty("workspace")) {
+            if (!data.input.delete) {
+                jsp.connect({ uuids: [data.input.source_id, data.input.target_id] });
+            } else {
+                jsp.detach({ uuids: [data.input.source_id, data.input.target_id] });
+            }
+
+            jsp.bind("connection", on_connection_change);
+            jsp.bind("connection", on_connection_detached);
+        }
+        else if(data.hasOwnProperty("workspace")) {
+            console.log("Loading Workspace...");
             load_filter_chain(data.workspace);
         }
     };
@@ -754,7 +814,7 @@ jsPlumb.ready(function() {
         var position = 1;
 
         if($(this).prop("class").split(" ").indexOf("bottom") > -1) {
-            position = $("#workspace").children().size() - 1;
+            position = filtergroups().size() + 1;
         }
 
         $("#edit-filtergroup-name").off("input");
@@ -774,9 +834,17 @@ jsPlumb.ready(function() {
             modal: true,
             buttons: {
                 "Add Filter Group": function() {
+                    var order = 0;
+
                     create_filter_group($("#edit-filtergroup-name").val().replace(/\s+/g, "-").toLowerCase(), position);
+
+                    filtergroups().each(function() {
+                        if($(this).find(".filtergroup-name").text() === $("#edit-filtergroup-name").val()) return false;
+                        order++;
+                    });
+
                     $(this).dialog( "close" );
-                    send_create_filter_group({ filter_group_name: $("#edit-filtergroup-name").val().replace(/\s+/g, "-").toLowerCase() })
+                    send_create_filtergroup($("#edit-filtergroup-name").val().replace(/\s+/g, "-").toLowerCase(), order);
                     $("#edit-filtergroup-name").val("");
                 },
                 Cancel: function() {
@@ -805,8 +873,7 @@ jsPlumb.ready(function() {
 	});
 
     jsp.doWhileSuspended(function() {
-        jsp.bind("connection", function(info) {
-            info.connection.getOverlay("label").setLabel(info.connection.id);
-        });
+        jsp.bind("connection", on_connection_change);
+        jsp.bind("connectionDetached", on_connection_detached);
     });
 });

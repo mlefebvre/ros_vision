@@ -64,9 +64,17 @@ class Workspace:
     def _on_group_update(self):
         self.update_workspace()
 
-    def add_group(self, name, filters=OrderedDict()):
+    def add_group(self, name, order=None, filters=OrderedDict()):
         name = "/" + name
-        self.groups[name] = Group(name, filters, self._on_group_update)
+        if order is None:
+            self.groups[name] = Group(name, filters, self._on_group_update)
+        else:
+            updated_groups = self.groups.items()
+            updated_groups.insert(order, (name, Group(name, filters, self._on_group_update)))
+            self.groups = OrderedDict()
+
+            for (n, g) in updated_groups:
+                self.groups[n] = g
 
     def _find_input_topics(self):
         input_topics = []

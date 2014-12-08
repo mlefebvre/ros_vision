@@ -153,14 +153,15 @@ canvas {
     width: 200px;
 }
 
-.filter-type {
-    display: none;
-}
-
 .filter-name {
     position: relative;
     float: left;
-    height: 50px;
+    padding-left: 20px;
+}
+
+.filter-type {
+    position: relative;
+    float: left;
     text-align: left;
 }
 
