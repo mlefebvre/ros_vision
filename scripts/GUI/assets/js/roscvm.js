@@ -855,6 +855,16 @@ jsPlumb.ready(function() {
         save.send($.trim($("#workspace-name").val().replace(/\s+/g, "__")));
     });
 
+    $("#reset-workspace").click(function() {
+        $(".delete-filtergroup").each(function () {
+            $(this).trigger("click");
+        });
+    });
+
+    $("#optimize-positions").click(function() {
+        optimize_filter_positions();
+    });
+
     $(".filtergroup-add").click(function () {
         var position = 1;
 
