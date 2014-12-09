@@ -18,7 +18,7 @@ import cv2
 import os.path
 import base64
 import json
-from util.message_encoder import MessageEncoder
+from WebUI.util.message_encoder import MessageEncoder
 import datetime
 
 class MasterHandler(tornado.websocket.WebSocketHandler):
@@ -177,14 +177,14 @@ class MasterHandler(tornado.websocket.WebSocketHandler):
         if exclude is not None:
             MasterHandler.clients.add(exclude)
 
-class GUI(tornado.web.Application):
+class WebUI(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/", DashBoardHandler),
-            (r"/styles/(.*)", tornado.web.StaticFileHandler, {"path": "assets/css"}),
-            (r"/scripts/(.*)", tornado.web.StaticFileHandler, {"path": "assets/js"}),
-            (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "assets/img"}),
-            (r"/fonts/(.*)", tornado.web.StaticFileHandler, {"path": "assets/fonts"}),
+            (r"/styles/(.*)", tornado.web.StaticFileHandler, {"path": "WebUI/assets/css"}),
+            (r"/scripts/(.*)", tornado.web.StaticFileHandler, {"path": "WebUI/assets/js"}),
+            (r"/images/(.*)", tornado.web.StaticFileHandler, {"path": "WebUI/assets/img"}),
+            (r"/fonts/(.*)", tornado.web.StaticFileHandler, {"path": "WebUI/assets/fonts"}),
             (r"/input([0-9]+)/", InputsHandler),
             (r"/topics/", TopicsHandler),
             (r"/filters/", FiltersHandler),
@@ -194,8 +194,8 @@ class GUI(tornado.web.Application):
         ]
         settings = dict(
             title=u"ROS CVM",
-            static_path=os.path.join(os.path.dirname(__file__), "assets"),
-            template_path=os.path.join(os.path.dirname(__file__), "views"),
+            static_path=os.path.join(os.path.dirname(__file__), "WebUI/assets"),
+            template_path=os.path.join(os.path.dirname(__file__), "WebUI/views"),
             xsrf_cookies=True,
             debug=True,
         )
@@ -268,11 +268,11 @@ class SaveHandler(tornado.websocket.WebSocketHandler):
         save_workspace = rospy.ServiceProxy('/vision_master/save_workspace', ros_vision.srv.SaveWorkspace)
         save_workspace(req)
 
-rospy.init_node('roscvm_gui')
+rospy.init_node('web_ui')
 
 client_refresh_rate = datetime.timedelta(seconds=rospy.get_param('~input_topic_refresh_rate', 1))
 input_topic_types = rospy.get_param('~input_topic_types', {'sensor_msgs/Image' : Image, 'sensor_msgs/PointCloud2': PointCloud2, 'sensor_msgs/CompressedImage' : CompressedImage})
 
-http_server = tornado.httpserver.HTTPServer(GUI())
+http_server = tornado.httpserver.HTTPServer(WebUI())
 http_server.listen(8888)
 tornado.ioloop.IOLoop.instance().start()
