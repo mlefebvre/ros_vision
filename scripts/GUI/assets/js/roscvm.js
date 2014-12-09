@@ -1,10 +1,12 @@
 var padding = $('<div class="filter inactive sort-disabled panel panel-default"></div>');
 var jsp = null;
 var filter_types = new WebSocket("ws://" + window.location.hostname + ":8888/filters/");
+var topics = new WebSocket("ws://" + window.location.hostname + ":8888/topics/");
 var master = new WebSocket("ws://" + window.location.hostname + ":8888/master/");
+var input_feeds = { "feed1": new WebSocket("ws://" + window.location.hostname + ":8888/input1/"), "feed2": new WebSocket("ws://" + window.location.hostname + ":8888/input2/") };
 var selected_topic = {"feed1": "None", "feed2": "None"};
 var filter_metadata = null;
-var topic_input = function (text) { return '<a href="#" class="list-group-item list-group-item-success">' + text + '</a>'; };
+var external_inputs = {}
 
 ///////////////////////////////////////////////////////////////////////////////
 //                            ACCESSOR FUNCTIONS                             //
@@ -225,7 +227,7 @@ function create_filter(filter_group_name, filter_name, type, options, position) 
     for(i in inputs) {
         jsp.addEndpoint(new_filter.find(".filter-inputs"),
             {
-                uuid: "_" + filter_group_name + "_" + filter_name + "_" + inputs[i].name,
+                uuid: "__" + filter_group_name + "__" + filter_name + "__" + inputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (inputs.length + 1)), -1, 0]
             },
             {
@@ -246,7 +248,7 @@ function create_filter(filter_group_name, filter_name, type, options, position) 
     for(i in outputs) {
         jsp.addEndpoint(new_filter.find(".filter-outputs"),
             {
-                uuid: "_" + filter_group_name + "_" + filter_name + "_" + outputs[i].name,
+                uuid: "__" + filter_group_name + "__" + filter_name + "__" + outputs[i].name,
                 anchor:[0.5, (parseInt(i) + 1) * (1.0 / (outputs.length + 1)), 1, 0]
             },
             {
@@ -510,8 +512,8 @@ function on_connection_change(info, original_event) {
             "filter_group_name": $(info.target).closest(".filtergroup").find(".filtergroup-name").text(),
             "filter_name": $(info.target).closest(".filter").find(".filter-name").text(),
             "parameter_name": $(info.targetEndpoint.getOverlay().label).siblings(".input-name").text(),
-            "parameter_value": info.sourceEndpoint.getUuid().replace(/_/g, "/"),
-            "source_id": info.sourceEndpoint.getUuid(),
+            "parameter_value": (info.sourceEndpoint.getUuid() || info.sourceEndpoint.elementId).replace(/__/g, "/"),
+            "source_id": (info.sourceEndpoint.getUuid() || info.sourceEndpoint.elementId),
             "target_id": info.targetEndpoint.getUuid(),
             "delete": false
         }
@@ -525,7 +527,7 @@ function on_connection_detached(info, original_event) {
             "filter_name": $(info.target).closest(".filter").find(".filter-name").text(),
             "parameter_name": $(info.targetEndpoint.getOverlay().label).siblings(".input-name").text(),
             "parameter_value": $(info.targetEndpoint.getOverlay().label).siblings(".input-name").text(),
-            "source_id": info.sourceEndpoint.getUuid(),
+            "source_id": (info.sourceEndpoint.getUuid() || info.sourceEndpoint.elementId),
             "target_id": info.targetEndpoint.getUuid(),
             "delete": true
         }
@@ -555,29 +557,6 @@ function load_filter_chain(workspace) {
     jsp.deleteEveryEndpoint();
     $(".filtergroup").remove();
 
-    // Initialize external inputs
-    // TODO Make function for this
-    for(input_topic_index in workspace.input_topics) {
-        var topic_name = workspace.input_topics[input_topic_index].topic;
-        var topic_type = workspace.input_topics[input_topic_index].type;
-
-        if($("#" + topic_type.split("/").pop().toLowerCase() + "-inputs" + " > a:contains(" + topic_name + ")").length == 0) {
-            var input = $(topic_input(topic_name)).appendTo("#" + topic_type.split("/").pop().toLowerCase() + "-inputs");
-
-            input.attr("id", topic_name.replace(/\//g, '_'));
-            jsp.makeSource(input,
-                {
-                    anchor: "Right",
-                    scope: topic_type,
-                    connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
-                    connectorStyle: {
-                        strokeStyle: "#0000FF",
-                        lineWidth: 4
-                    }
-                });
-        }
-    }
-
     // Initialize filters and filter groups
     for(group_index in workspace.filter_groups) {
         create_filter_group(workspace.filter_groups[group_index].name);
@@ -602,9 +581,9 @@ function load_filter_chain(workspace) {
             for(i in workspace.filter_groups[group_index].filters[filter_index].inputs) {
                 var inputs = workspace.filter_groups[group_index].filters[filter_index].inputs;
 
-                if(inputs[i].topic.replace(/\//g, '_') != "_" + workspace.filter_groups[group_index].name + "_" + workspace.filter_groups[group_index].filters[filter_index].name + "_" + inputs[i].name) {
-                    var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '_')) || $("#" + inputs[i].topic.replace(/\//g, '_'));
-                    var output_endpoint = jsp.getEndpoint("_" + workspace.filter_groups[group_index].name + "_" + workspace.filter_groups[group_index].filters[filter_index].name + "_" + inputs[i].name);
+                if(inputs[i].topic.replace(/\//g, '__') != "__" + workspace.filter_groups[group_index].name + "__" + workspace.filter_groups[group_index].filters[filter_index].name + "__" + inputs[i].name) {
+                    var input_endpoint = jsp.getEndpoint(inputs[i].topic.replace(/\//g, '__')) || $("#" + inputs[i].topic.replace(/\//g, '__'));
+                    var output_endpoint = jsp.getEndpoint("__" + workspace.filter_groups[group_index].name + "__" + workspace.filter_groups[group_index].filters[filter_index].name + "__" + inputs[i].name);
 
                     jsp.connect({ source: input_endpoint, target: output_endpoint});
                 }
@@ -638,47 +617,61 @@ function optimize_filter_positions() {
     jsp.repaintEverything();
 }
 
-function draw_image(canvas_id, imgString){
-    var canvas = $("#" + canvas_id)[0];
-    var ctx = canvas.getContext("2d");
-    var image = new Image();
+function update_topic_list(data) {
+    external_inputs = JSON.parse(data);
 
-    if(imgString != "None") {
-        image.src = ((imgString != null) ? "data:image/jpg;base64," + imgString : null);
+    // Update topic list for feeds
+    for(var feed_id in input_feeds) {
+        $("#" + feed_id + "-topics").empty();
+        $("#" + feed_id + "-topics").append('<option value="None">None</option>');
 
-    } else {
-        image.src = "images/no_feed.png";
+        $.each(external_inputs, function(groupName, options) {
+            var $optgroup = $("<optgroup>", {label: groupName});
+            $optgroup.appendTo($("#" + feed_id + "-topics"));
+
+            $.each(options, function(index, option) {
+                var $option = $("<option>", {text: option, value: groupName});
+
+                $option.appendTo($optgroup);
+            });
+        });
+
+        $("#" + feed_id + "-topics option:contains(" + selected_topic[feed_id] + ")").attr('selected', true);
     }
 
-    image.onload = function() {
-        // FIXME: Auto adjust canvas dimensions
-        /*canvas.style.width='100%';
-        canvas.style.height='100%';
-        canvas.width  = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;*/
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    };
-}
+    // Update external inputs list
+    $.each(external_inputs, function(type, topics) {
+        if($("#" + type.split(/\//).pop().toLowerCase() + "-inputs").length == 0) {
+            $(".inputs-container").append($('<div id="' + type.split(/\//).pop().toLowerCase() + '-inputs" class="topic-inputs list-group"><a href="#" class="list-group-item"><h4 class="list-group-item-heading">' + type + '</h4></a></div>'));
+        }
 
-function update_topic_list(topic_selector_id, data) {
-    $("#" + topic_selector_id + "-topics").empty();
-    $("#" + topic_selector_id + "-topics").append('<option value="None">None</option>');
+        $.each(topics, function(index, topic) {
+            var topic_parts = topic.split(/\//);
 
-    topics = JSON.parse(data);
+            if(filters(topic_parts[1], topic_parts[2]).length == 0 && $("#" + topic.replace(/\//g, '__')).length == 0) {
+                var input = $('<a href="#" class="list-group-item list-group-item-success">' + topic + '</a>');
 
-    $.each(topics, function(groupName, options) {
-        var $optgroup = $("<optgroup>", {label: groupName});
-        $optgroup.appendTo($("#" + topic_selector_id + "-topics"));
+                input.attr("id", topic.replace(/\//g, '__'));
+                $("#" + type.split(/\//).pop().toLowerCase() + "-inputs").append(input);
 
-        $.each(options, function(index, option) {
-            var $link = $("<a>", {text: option, class: "list-group-item"});
-            var $option = $("<option>", {text: option, value: groupName});
-
-            $option.appendTo($optgroup);
+                jsp.makeSource(input,
+                    {
+                        anchor: "Right",
+                        scope: type,
+                        connector: [ "Flowchart", { stub: [10, 10], alwaysRespectStubs: true, midpoint: 0.05 } ],
+                        connectorStyle: {
+                            strokeStyle: "#d9534f",
+                            lineWidth: 4
+                        }
+                    });
+            } else if(filters(topic_parts[1], topic_parts[2]).length != 0 && $("#" + topic.replace(/\//g, '__')).length != 0) {
+                jsp.detachAllConnections($("#" + topic.replace(/\//g, '__')));
+                $("#" + topic.replace(/\//g, '__')).remove();
+            }
         });
     });
 
-    $("#" + topic_selector_id + "-topics option:contains(" + selected_topic[topic_selector_id] + ")").attr('selected', true);
+    jsp.repaintEverything();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -697,37 +690,88 @@ function insert_at(container, element, index) {
     }
 }
 
+function encode (input) {
+    var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var output = "";
+    var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+    var i = 0;
+
+    while (i < input.length) {
+        chr1 = input[i++];
+        chr2 = i < input.length ? input[i++] : Number.NaN; // Not sure if the index
+        chr3 = i < input.length ? input[i++] : Number.NaN; // checks are needed here
+
+        enc1 = chr1 >> 2;
+        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+        enc4 = chr3 & 63;
+
+        if (isNaN(chr2)) {
+            enc3 = enc4 = 64;
+        } else if (isNaN(chr3)) {
+            enc4 = 64;
+        }
+        output += keyStr.charAt(enc1) + keyStr.charAt(enc2) +
+                  keyStr.charAt(enc3) + keyStr.charAt(enc4);
+    }
+    return output;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 jsPlumb.ready(function() {
-    var input1 = new WebSocket("ws://" + window.location.hostname + ":8888/input1/");
-    var input2 = new WebSocket("ws://" + window.location.hostname + ":8888/input2/");
-    var topics = new WebSocket("ws://" + window.location.hostname + ":8888/topics/");
     var load = new WebSocket("ws://" + window.location.hostname + ":8888/load/");
     var save = new WebSocket("ws://" + window.location.hostname + ":8888/save/");
-
-    $("#properties-container").children().hide();
-    $("#load-workspace").prop('disabled', true);
-    $("#save-workspace").prop('disabled', true);
-
-    draw_image("feed1", "None");
-    draw_image("feed2", "None");
 
     $(window).resize(function() {
         jsp.repaintEverything();
     });
 
-    input1.onmessage = function(evt) {
-        draw_image("feed1", evt.data);
+    $("#properties-container").children().hide();
+    $("#load-workspace").prop('disabled', true);
+    $("#save-workspace").prop('disabled', true);
+    $("#feed1").attr("src", "images/no_feed.png");
+    $("#feed2").attr("src", "images/no_feed.png");
+
+    input_feeds["feed1"].binaryType = 'arraybuffer';
+    input_feeds["feed2"].binaryType = 'arraybuffer';
+
+    input_feeds["feed1"].onmessage = function(evt) {
+        if(evt.data != null) {
+            var image = encode(new Uint8Array(evt.data));
+
+            if(image !== "") {
+                $("#feed1").attr("src", "data:image/jpeg;base64," + image);
+            } else {
+                $("#feed1").attr("src", "images/no_feed.png");
+            }
+        }
     };
 
-    input2.onmessage = function(evt) {
-        draw_image("feed2", evt.data);
+    input_feeds["feed2"].onmessage = function(evt) {
+        if(evt.data != null) {
+            var image = encode(new Uint8Array(evt.data));
+
+            if(image !== "") {
+                $("#feed2").attr("src", "data:image/jpeg;base64," + image);
+            } else {
+                $("#feed2").attr("src", "images/no_feed.png");
+            }
+        }
     };
+
+    $("#feed1-topics").change(function () {
+        selected_topic["feed1"] = $("option:selected", this).text();
+        input_feeds["feed1"].send([$("option:selected", this).text(), $("option:selected", this).val()]);
+    });
+
+    $("#feed2-topics").change(function () {
+        selected_topic["feed2"] = $("option:selected", this).text();
+        input_feeds["feed2"].send([$("option:selected", this).text(), $("option:selected", this).val()]);
+    });
 
     topics.onmessage = function(evt) {
-        update_topic_list("feed1", evt.data);
-        update_topic_list("feed2", evt.data);
+        update_topic_list(evt.data);
     };
 
     load.onmessage = function(evt) {
@@ -808,17 +852,7 @@ jsPlumb.ready(function() {
     });
 
     $("#save-workspace").click(function () {
-        save.send($.trim($("#workspace-name").val().replace(/\s+/g, "_")));
-    });
-
-    $("#feed1-topics").change(function () {
-        selected_topic["feed1"] = $("option:selected", this).text();
-        input1.send([$("option:selected", this).text(), $("option:selected", this).val()]);
-    });
-
-    $("#feed2-topics").change(function () {
-        selected_topic["feed2"] = $("option:selected", this).text();
-        input2.send([$("option:selected", this).text(), $("option:selected", this).val()]);
+        save.send($.trim($("#workspace-name").val().replace(/\s+/g, "__")));
     });
 
     $(".filtergroup-add").click(function () {
@@ -870,15 +904,14 @@ jsPlumb.ready(function() {
 
 	jsp = jsPlumb.getInstance({
 		Endpoint : ["Dot", {radius:2}],
-		HoverPaintStyle : {strokeStyle:"#1e8151", lineWidth:2 },
+		HoverPaintStyle : {strokeStyle:"#d9534f", lineWidth:2 },
 		ConnectionOverlays : [
 			[ "Arrow", {
 				location:1,
 				id:"arrow",
                 length:14,
                 foldback:0.8
-			} ],
-            [ "Label", { label:"FOO", id:"label", cssClass:"aLabel" }]
+			} ]
 		],
 		Container:"gui-body"
 	});

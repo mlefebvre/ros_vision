@@ -1,11 +1,14 @@
 from Filters.filter_factory import FilterFactory
 import time
+from threading import Lock
+
 
 class FilterChain:
 
     _filters = {}
     _filter_list = []
     _filter_stats = {}
+    _filter_list_lock = Lock()
 
     def __init__(self):
         pass
@@ -25,10 +28,12 @@ class FilterChain:
             pass
 
     def create_filter(self, name, filter_type, order=len(_filter_list), params={}):
+        self._filter_list_lock.acquire()
         f = FilterFactory.create_filter(name, filter_type, params)
         self._filters[name] = f
         self._filter_list.insert(order, f)
         self._filter_stats[name] = []
+        self._filter_list_lock.release()
 
     def delete_filter(self, name):
         self._filter_list.remove(self._filters[name])
@@ -42,6 +47,7 @@ class FilterChain:
         pass
 
     def execute(self):
+        self._filter_list_lock.acquire()
         current_stats = {}
         for f in self._filter_list:
             start = time.time()
@@ -51,6 +57,7 @@ class FilterChain:
             self._filter_stats[f.name].append(t)
             while len(self._filter_stats[f.name]) > 100:
                 del self._filter_stats[f.name][0]
+        self._filter_list_lock.release()
         return current_stats
 
     def get_average_filter_execution_time(self):

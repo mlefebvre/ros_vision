@@ -18,12 +18,12 @@ if webcam.isOpened(): # try to get the first frame
 else:
     rval = False
  
-while rval:
+while rval and not rospy.is_shutdown():
     msg = bridge.cv2_to_imgmsg(frame, encoding="bgr8")
     msg.header.stamp = rospy.Time.now()
     pub.publish(msg)
-    rval, frame = webcam.read()
-    cv2.imshow("webcam", frame)
-    k = cv2.waitKey(10) & 0xFF
-    if k == 27 or k == 99:
-        rval = False
+    val, frame = webcam.read()
+    #cv2.imshow("webcam", frame)
+    #k = cv2.waitKey(10) & 0xFF
+    #if k == 27 or k == 99:
+    #    rval = False

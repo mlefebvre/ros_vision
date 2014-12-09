@@ -222,9 +222,9 @@ class InputsHandler(tornado.websocket.WebSocketHandler):
 
     def on_image(self, image):
         img = CvBridge().imgmsg_to_cv2(image)
-        #gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
         if self.ws_connection is not None:
-            self.write_message(base64.encodestring(cv2.imencode('.jpg', img)[1]))
+            self.write_message(cv2.imencode('.jpg', img)[1].tostring(), binary=True)
 
 class TopicsHandler(tornado.websocket.WebSocketHandler):
     def open(self):
