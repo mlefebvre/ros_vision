@@ -2,6 +2,8 @@
 
 import rospy
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage
+
 
 diffs = []
 def callback(msg):
@@ -15,6 +17,6 @@ def callback(msg):
 
 rospy.init_node('performance_tester_node')
 
-rospy.Subscriber("/main/mask/output", Image, callback)
+rospy.Subscriber("/main/compress/output", CompressedImage, callback)
 
 rospy.spin()
