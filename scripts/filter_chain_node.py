@@ -73,13 +73,16 @@ count = 0
 while not rospy.is_shutdown():
     last = rospy.get_time()
     last_stats = fc.execute()
-    avg_stats = fc.get_average_filter_execution_time()
-    if len(avg_stats) > 0:
-        stat_msg = ros_vision.msg.Statistics()
-        for name in avg_stats.keys():
-            stat_msg.filters.append(ros_vision.msg.FilterStatistics(name=name, average_execution_time=avg_stats[name], last_execution_time=last_stats[name]))
-        stat_msg.average_execution_time = sum(avg_stats.values())
-        stats_topic.publish(stat_msg)
+    if last_stats == False:
+        rospy.sleep(1)
+    else:
+        avg_stats = fc.get_average_filter_execution_time()
+        if len(avg_stats) > 0:
+            stat_msg = ros_vision.msg.Statistics()
+            for name in avg_stats.keys():
+                stat_msg.filters.append(ros_vision.msg.FilterStatistics(name=name, average_execution_time=avg_stats[name], last_execution_time=last_stats[name]))
+            stat_msg.average_execution_time = sum(avg_stats.values())
+            stats_topic.publish(stat_msg)
 
-    max_rate.sleep()
+        max_rate.sleep()
 

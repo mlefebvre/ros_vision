@@ -48,16 +48,20 @@ class FilterChain:
 
     def execute(self):
         self._filter_list_lock.acquire()
-        current_stats = {}
-        for f in self._filter_list:
-            start = time.time()
-            f.execute()
-            t = time.time() - start
-            current_stats[f.name] = t
-            self._filter_stats[f.name].append(t)
-            while len(self._filter_stats[f.name]) > 100:
-                del self._filter_stats[f.name][0]
-        self._filter_list_lock.release()
+        try:
+            current_stats = {}
+            for f in self._filter_list:
+                start = time.time()
+                f.execute()
+                t = time.time() - start
+                current_stats[f.name] = t
+                self._filter_stats[f.name].append(t)
+                while len(self._filter_stats[f.name]) > 100:
+                    del self._filter_stats[f.name][0]
+            self._filter_list_lock.release()
+        except Exception as e:
+            print e.message
+            return False
         return current_stats
 
     def get_average_filter_execution_time(self):
