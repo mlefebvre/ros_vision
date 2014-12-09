@@ -31,7 +31,8 @@ class ParticleFilter(Filter):
                 area = np.abs(cv2.contourArea(contour))
                 if area > min_area:
                     cv2.drawContours(im3, [contour], -1, (255, 255, 255), thickness=-1)
-
+            im3 = cv2.dilate(im3, kernel)
+            
             output = Image(im3)
             im.copy_header(output)
             self.set_output("output", output)

@@ -1,18 +1,32 @@
+import numpy as np
 import cv2
+
+im = cv2.imread('/home/mathieu/Pictures/pfe/threshold2.png')
+imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+ret,thresh = cv2.threshold(imgray,127,255,0)
+
+
+kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+thresh = cv2.erode(thresh, kernel)
+
+
+contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+cv2.drawContours(im, contours, -1, (0,255,0), 3)
+
+
 import numpy as np
 
-winname = "GRS"
-bgs_mog = cv2.BackgroundSubtractorMOG(500, 6, 0.9, .1)
-capture = cv2.VideoCapture(0)
+im3 = np.zeros(im.shape, np.uint8)
+for contour in contours:
+    area = np.abs(cv2.contourArea(contour))
+    if area > 70:
+        cv2.drawContours(im3, [contour], -1, (255, 255, 255), thickness=-1)
 
-if __name__ == "__main__":
-    while capture.isOpened():
-        _,frame = capture.read()
-        fgmask = bgs_mog.apply(frame)
-        mask_rbg = cv2.cvtColor(fgmask,cv2.COLOR_GRAY2BGR)
-        draw = frame & mask_rbg
-        cv2.imshow(winname, draw)
-        c = cv2.waitKey(1)
-        if c == 27:
-            break
-    cv2.destroyAllWindows()
+cv2.imshow("thresh", thresh)
+cv2.imshow("aaa", im)
+cv2.imshow("bbb", im3)
+
+cv2.waitKey(0)
+
+
