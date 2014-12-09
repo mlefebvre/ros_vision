@@ -50,6 +50,42 @@ def load_workspace(req):
 
     return res
 
+def save_workspace(req):
+    rospack = rospkg.RosPack()
+    serialized_workspace = collections.OrderedDict()
+    types = {'str': str, 'int': int, 'float': float, 'bool': bool}
+
+    with open(os.path.join(rospack.get_path("ros_vision"), "workspaces/" + req.name + ".yaml"), 'w') as f:
+        for group_name, group in workspace.groups.items():
+            filters = collections.OrderedDict()
+
+            for filter in group.filters.values():
+                parameters = collections.OrderedDict()
+                parameters["type"] = filter.type
+
+                for input in filter.inputs:
+                    parameters[input.name] = input.topic
+
+                for parameter in filter.parameters:
+                    get_parameter_request = ros_vision.srv.GetParameterValueRequest()
+                    get_parameter_request.filter_name = filter.name
+                    get_parameter_request.parameter_name = parameter.name
+
+                    rospy.wait_for_service("%s/get_parameter" % group_name)
+                    get_parameter = rospy.ServiceProxy("%s/get_parameter" % group_name, ros_vision.srv.GetParameterValue)
+                    parameter_value = get_parameter(get_parameter_request).parameter_value
+
+                    if parameter_value != parameter.default:
+                        parameters[parameter.name] = types[parameter.type](parameter_value)
+
+                filters[filter.name] = parameters
+
+            serialized_workspace[group_name[1:]] = filters
+
+        f.write(yaml.dump(serialized_workspace, default_flow_style=False))
+
+    return ros_vision.srv.SaveWorkspaceResponse()
+
 def list_workspaces(req):
     res = ros_vision.srv.ListWorkspacesResponse()
     rospack = rospkg.RosPack()
@@ -93,6 +129,7 @@ workspace = Workspace()
 get_workspace_service = rospy.Service('~get_workspace', ros_vision.srv.GetWorkspace, get_workspace)
 list_workspaces_service = rospy.Service('~list_workspaces', ros_vision.srv.ListWorkspaces, list_workspaces)
 load_workspace_service = rospy.Service('~load_workspace', ros_vision.srv.LoadWorkspace, load_workspace)
+save_workspace_service = rospy.Service('~save_workspace', ros_vision.srv.SaveWorkspace, save_workspace)
 create_filtergroup_service = rospy.Service('~create_filtergroup', ros_vision.srv.CreateFilterGroup, create_filtergroup)
 delete_filtergroup_service = rospy.Service('~delete_filtergroup', ros_vision.srv.DeleteFilterGroup, delete_filtergroup)
 list_filter_types_service = rospy.Service('~list_filter_types', ros_vision.srv.ListFilterTypes, list_filter_types)
